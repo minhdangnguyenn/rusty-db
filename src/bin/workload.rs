@@ -10,8 +10,10 @@
 
 use std::cmp::min;
 use std::collections::HashSet;
-use std::io::Write as _;
-use std::time::{Duration, Instant};
+use std::fs::{File, create_dir_all};
+use std::io::{BufWriter, Write as _};
+use std::path::PathBuf;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use hdrhistogram::Histogram;
@@ -78,6 +80,14 @@ struct Runner {
     /// Seed to use for random number generation.
     #[arg(short, long, default_value = "16791084677885396490")]
     seed: u64,
+
+    /// Output directory for benchmark artifacts (CSV files).
+    #[arg(long, default_value = "csv")]
+    out_dir: PathBuf,
+
+    /// Experiment name/tag used in output filenames (e.g., exp1-baseline-small).
+    #[arg(long)]
+    experiment: String,
 }
 
 impl Runner {
@@ -86,9 +96,40 @@ impl Runner {
         let mut rng = StdRng::seed_from_u64(self.seed);
         let mut client = Client::connect(&self.hosts[0])?;
 
+        // Ensure output directory exists.
+        create_dir_all(&self.out_dir)?;
+
+        // Create a run id to avoid overwriting files.
+        let run_id = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| Duration::from_secs(0))
+            .as_millis();
+
+        let csv_path = self.out_dir.join(format!("{}-{}.csv", self.experiment, run_id));
+        let summary_path = self.out_dir.join(format!("{}-{}-summary.csv", self.experiment, run_id));
+
         // Set up a histogram recording txn latencies as nanoseconds. The
         // buckets range from 0.001s to 10s.
         let mut hist = Histogram::<u32>::new_with_bounds(1_000, 10_000_000_000, 3)?.into_sync();
+
+        // CSV writer for per-second stats.
+        let mut csv = {
+            let f = File::create(&csv_path)?;
+            let mut w = BufWriter::new(f);
+            writeln!(w, "time_s,progress,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms")?;
+            w
+        };
+
+        // CSV writer for final one-row summary.
+        let mut csv_summary = {
+            let f = File::create(&summary_path)?;
+            let mut w = BufWriter::new(f);
+            writeln!(
+                w,
+                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms"
+            )?;
+            w
+        };
 
         // Prepare the dataset.
         print!("Preparing initial dataset... ");
@@ -96,6 +137,9 @@ impl Runner {
         let start = Instant::now();
         workload.prepare(&mut client, &mut rng)?;
         println!("done ({:.3}s)", start.elapsed().as_secs_f64());
+        println!("Running Workload !");
+
+        let bench_start = Instant::now();
 
         // Spawn workers, round robin across hosts.
         std::thread::scope(|s| -> Result<()> {
@@ -150,23 +194,76 @@ impl Runner {
                     recv(done_rx) -> _ => {},
                 }
 
-                let duration = start.elapsed().as_secs_f64();
+                let duration_s = start.elapsed().as_secs_f64();
                 hist.refresh_timeout(Duration::from_secs(1));
+
+                let progress = hist.len() as f64 / self.count as f64 * 100.0;
+                let txns = hist.len();
+                let rate_tps = hist.len() as f64 / duration_s;
+
+                let p50_ms =
+                    Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
+                let p90_ms =
+                    Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
+                let p99_ms =
+                    Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
+                let pmax_ms = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
 
                 println!(
                     "{:<8} {:>5.1}%  {:>7}  {:>6.0}/s  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms",
-                    format!("{:.1}s", duration),
-                    hist.len() as f64 / self.count as f64 * 100.0,
-                    hist.len(),
-                    hist.len() as f64 / duration,
-                    Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0,
-                    Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0,
-                    Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0,
-                    Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0,
+                    format!("{:.1}s", duration_s),
+                    progress,
+                    txns,
+                    rate_tps,
+                    p50_ms,
+                    p90_ms,
+                    p99_ms,
+                    pmax_ms,
                 );
+
+                writeln!(
+                    csv,
+                    "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
+                    duration_s, progress, txns, rate_tps, p50_ms, p90_ms, p99_ms, pmax_ms,
+                )?;
+                csv.flush()?; // keep data even if benchmark aborts
             }
             Ok(())
         })?;
+
+        // Write one-row CSV summary.
+        let total_time_s = bench_start.elapsed().as_secs_f64();
+        hist.refresh_timeout(Duration::from_secs(0)); // refresh final snapshot
+
+        let txns = hist.len();
+        let rate_tps = txns as f64 / total_time_s;
+
+        let p50_ms = Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
+        let p90_ms = Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
+        let p99_ms = Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
+        let pmax_ms = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
+
+        let hosts = self.hosts.join(";");
+
+        writeln!(
+            csv_summary,
+            "\"{}\",{},{:?},\"{}\",{},{},{},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
+            self.experiment,
+            run_id,
+            workload.to_string(),
+            hosts,
+            self.concurrency,
+            self.count,
+            self.seed,
+            total_time_s,
+            txns,
+            rate_tps,
+            p50_ms,
+            p90_ms,
+            p99_ms,
+            pmax_ms,
+        )?;
+        csv_summary.flush()?;
 
         // Verify the final dataset.
         println!();
