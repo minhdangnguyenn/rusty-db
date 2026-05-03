@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms
+"indexing",1777822685267,"read (rows=10000 size=16 batch=1)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",4,1000,16791084677885396490,0.200,1000,4998.683,0.817151,1.032703,1.687551,3.188735
