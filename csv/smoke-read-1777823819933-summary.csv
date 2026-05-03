@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms
+"smoke-read",1777823819933,"read (rows=10000 size=16 batch=1)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",4,1000,16791084677885396490,0.203,1000,4922.386,0.821247,1.048575,1.734655,3.080191

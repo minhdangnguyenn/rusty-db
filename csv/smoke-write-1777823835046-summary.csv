@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms
+"smoke-write",1777823835046,"write (size=16 batch=10)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",4,500,16791084677885396490,149.091,500,3.354,1183.842303,1675.624447,2485.125119,2717.908991

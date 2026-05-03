@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms
+"smoke-bank",1777823985322,"bank (customers=50 accounts=5)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",4,1000,16791084677885396490,515.573,1000,1.940,1901.068287,3242.196991,6777.995263,13421.772799

@@ -2,16 +2,16 @@
 
 Distributed SQL database in Rust, built from scratch as an educational project. Main features:
 
-* [Raft distributed consensus][raft] for linearizable state machine replication.
+- [Raft distributed consensus][raft] for linearizable state machine replication.
 
-* [ACID transactions][txn] with MVCC-based snapshot isolation.
+- [ACID transactions][txn] with MVCC-based snapshot isolation.
 
-* [Pluggable storage engine][storage] with [BitCask][bitcask] and [in-memory][memory] backends.
+- [Pluggable storage engine][storage] with [BitCask][bitcask] and [in-memory][memory] backends.
 
-* [Iterator-based query engine][query] with [heuristic optimization][optimizer] and time-travel 
+- [Iterator-based query engine][query] with [heuristic optimization][optimizer] and time-travel
   support.
 
-* [SQL interface][sql] including joins, aggregates, and transactions.
+- [SQL interface][sql] including joins, aggregates, and transactions.
 
 toyDB is intended to be simple and understandable, and also functional and correct. Other aspects
 like performance, scalability, and availability are non-goals -- these are major sources of
@@ -35,17 +35,17 @@ simple illustration of the architecture and concepts behind distributed SQL data
 
 ## Documentation
 
-* [Architecture guide](docs/architecture/index.md): a guided tour of toyDB's code and architecture.
+- [Architecture guide](docs/architecture/index.md): a guided tour of toyDB's code and architecture.
 
-* [SQL examples](docs/examples.md): walkthrough of toyDB's SQL features.
+- [SQL examples](docs/examples.md): walkthrough of toyDB's SQL features.
 
-* [SQL reference](docs/sql.md): reference documentation for toyDB's SQL dialect.
+- [SQL reference](docs/sql.md): reference documentation for toyDB's SQL dialect.
 
-* [References](docs/references.md): research materials used while building toyDB.
+- [References](docs/references.md): research materials used while building toyDB.
 
 ## Usage
 
-With a [Rust compiler](https://www.rust-lang.org/tools/install) installed, a local five-node 
+With a [Rust compiler](https://www.rust-lang.org/tools/install) installed, a local five-node
 cluster can be built and started as:
 
 ```
@@ -111,21 +111,21 @@ key/value store managed by a Raft cluster with a SQL query engine on top. See th
 
 ## Tests
 
-toyDB mainly uses [Goldenscripts](https://github.com/erikgrinaker/goldenscript) for tests. These 
-script various scenarios, capture events and output, and later assert that the behavior remains the 
+toyDB mainly uses [Goldenscripts](https://github.com/erikgrinaker/goldenscript) for tests. These
+script various scenarios, capture events and output, and later assert that the behavior remains the
 same. See e.g.:
 
-* [Raft cluster tests](https://github.com/erikgrinaker/toydb/tree/main/src/raft/testscripts/node)
-* [MVCC transaction tests](https://github.com/erikgrinaker/toydb/tree/main/src/storage/testscripts/mvcc)
-* [SQL execution tests](https://github.com/erikgrinaker/toydb/tree/main/src/sql/testscripts)
-* [End-to-end tests](https://github.com/erikgrinaker/toydb/tree/main/tests/scripts)
+- [Raft cluster tests](https://github.com/erikgrinaker/toydb/tree/main/src/raft/testscripts/node)
+- [MVCC transaction tests](https://github.com/erikgrinaker/toydb/tree/main/src/storage/testscripts/mvcc)
+- [SQL execution tests](https://github.com/erikgrinaker/toydb/tree/main/src/sql/testscripts)
+- [End-to-end tests](https://github.com/erikgrinaker/toydb/tree/main/tests/scripts)
 
-Run tests with `cargo test`, or have a look at the latest 
+Run tests with `cargo test`, or have a look at the latest
 [CI run](https://github.com/erikgrinaker/toydb/actions/workflows/ci.yml).
 
 ## Benchmarks
 
-toyDB is not optimized for performance, but comes with a `workload` benchmark tool that can run 
+toyDB is not optimized for performance, but comes with a `workload` benchmark tool that can run
 various workloads against a toyDB cluster. For example:
 
 ```sh
@@ -154,20 +154,20 @@ Verifying dataset... done (0.002s)
 
 The available workloads are:
 
-* `read`: single-row primary key lookups.
-* `write`: single-row inserts to sequential primary keys.
-* `bank`: bank transfers between various customers and accounts. To make things interesting, this
+- `read`: single-row primary key lookups.
+- `write`: single-row inserts to sequential primary keys.
+- `bank`: bank transfers between various customers and accounts. To make things interesting, this
   includes joins, secondary indexes, sorting, and conflicts.
 
 For more information about workloads and parameters, run `cargo run --bin workload -- --help`.
 
 Example workload results are listed below. Write performance is atrocious, due to
-[fsync](https://en.wikipedia.org/wiki/Sync_(Unix)) and a lack of write batching in the Raft layer.
+[fsync](<https://en.wikipedia.org/wiki/Sync_(Unix)>) and a lack of write batching in the Raft layer.
 Disabling fsync, or using the in-memory engine, significantly improves write performance (at the
 expense of durability).
 
 | Workload | BitCask     | BitCask w/o fsync | Memory      |
-|----------|-------------|-------------------|-------------|
+| -------- | ----------- | ----------------- | ----------- |
 | `read`   | 14163 txn/s | 13941 txn/s       | 13949 txn/s |
 | `write`  | 35 txn/s    | 4719 txn/s        | 7781 txn/s  |
 | `bank`   | 21 txn/s    | 1120 txn/s        | 1346 txn/s  |
@@ -180,6 +180,77 @@ extension can be used to debug toyDB, with the debug configuration under `.vscod
 Under the "Run and Debug" tab, select e.g. "Debug executable 'toydb'" or "Debug unit tests in
 library 'toydb'".
 
+## Smoke tests (all workload commands)
+
+These commands run **small** benchmark configurations to verify the workloads work end-to-end.
+They also produce CSV artifacts in `csv/` by default (see `--out-dir`).
+
+> **Note:** Global flags must come **before** the subcommand:
+> `--experiment`, `-n/--count`, `-c/--concurrency`, `-H/--hosts`, `--out-dir`, `-s/--seed`
+
+### 1) Read smoke
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment smoke-read \
+  -n 1000 -c 4 \
+  read --rows 10000 --size 16 --batch 1
+```
+
+### 2) Write smoke
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment smoke-write \
+  -n 500 -c 4 \
+  write --size 16 --batch 10
+```
+
+### 3) Bank smoke
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment smoke-bank \
+  -n 1000 -c 4 \
+  bank --customers 50 --accounts 5 --balance 100 --max-transfer 10
+```
+
+### 4) Range Smoke
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment smoke-range \
+  -n 1000 -c 4 \
+  range --rows 10000 --size 16 --width 10
+```
+
+Optional: run them sequentially with `&&` to verify all workloads in one go:
+
+```bash
+set -e
+
+cargo run --release --bin workload -- --experiment smoke-read  -n 1000 -c 4 read  --rows 10000 --size 16 --batch 1
+cargo run --release --bin workload -- --experiment smoke-write -n 500  -c 4 write --size 16 --batch 10
+cargo run --release --bin workload -- --experiment smoke-bank  -n 1000 -c 4 bank  --customers 50 --accounts 5 --balance 100 --max-transfer 10
+cargo run --release --bin workload -- --experiment smoke-range -n 1000 -c 4 range --rows 10000 --size 16 --width 10
+```
+
 ## Credits
 
 The toyDB logo is courtesy of [@jonasmerlin](https://github.com/jonasmerlin).
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
