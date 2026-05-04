@@ -235,6 +235,185 @@ cargo run --release --bin workload -- --experiment smoke-bank  -n 1000 -c 4 bank
 cargo run --release --bin workload -- --experiment smoke-range -n 1000 -c 4 range --rows 10000 --size 16 --width 10
 ```
 
+## Workload CLI reference
+
+This section documents the `workload` benchmark CLI in full. The binary is defined in
+`src/bin/workload.rs` and is built with `cargo build --release --bin workload`.
+
+### Overview
+
+The `workload` tool drives synthetic load against a running toyDB cluster and records throughput
+and latency metrics. Its general invocation form is:
+
+```
+workload [GLOBAL FLAGS] <SUBCOMMAND> [SUBCOMMAND FLAGS]
+```
+
+> **Important:** all global flags must appear **before** the subcommand name.
+> Flags placed after the subcommand name are interpreted as subcommand-specific flags and will
+> cause a parse error if they are not recognised by that subcommand.
+
+### Connecting to the cluster
+
+By default, `workload` targets the 5-node local cluster started by `./cluster/run.sh`, which
+listens on SQL ports `9601`–`9605`:
+
+```
+localhost:9601, localhost:9602, localhost:9603, localhost:9604, localhost:9605
+```
+
+You can override this with `-H` / `--hosts`, passing a comma-separated list of `host:port`
+addresses. For example, to target only two nodes:
+
+```bash
+cargo run --release --bin workload -- -H localhost:9601,localhost:9602 read
+```
+
+### Workers and round-robin dispatch
+
+When the benchmark starts, the runner spawns `--concurrency` worker threads. Workers are assigned
+to hosts from the `--hosts` list in round-robin order: worker 0 connects to host 0, worker 1 to
+host 1, and so on, wrapping around if there are more workers than hosts. Each worker then
+independently issues requests in a tight loop until `--count` total transactions have been
+completed across all workers. This spreads load evenly across every node in the cluster.
+
+### Global flags
+
+| Flag                  | Short | Default                             | Description                                                                                    |
+| --------------------- | ----- | ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `--hosts <LIST>`      | `-H`  | `localhost:9601,...,localhost:9605` | Comma-separated `host:port` list of toyDB SQL endpoints.                                       |
+| `--concurrency <N>`   | `-c`  | `16`                                | Number of concurrent worker clients to spawn.                                                  |
+| `--count <N>`         | `-n`  | `100000`                            | Total number of transactions to execute across all workers.                                    |
+| `--seed <U64>`        | `-s`  | _(fixed default)_                   | RNG seed for the workload generator. Use a fixed seed for reproducible runs.                   |
+| `--out-dir <PATH>`    |       | `csv`                               | Directory for CSV output files. Created automatically if it does not exist.                    |
+| `--experiment <NAME>` |       | _(required)_                        | Human-readable experiment tag embedded in output filenames (e.g. `baseline`, `exp1-no-fsync`). |
+
+### Subcommands
+
+#### `read` — primary-key lookups
+
+Executes single-row `SELECT` statements by primary key. Tests read throughput and latency under
+a purely read workload.
+
+| Flag             | Default | Description                              |
+| ---------------- | ------- | ---------------------------------------- |
+| `--rows <N>`     | `1000`  | Number of rows in the dataset.           |
+| `--size <BYTES>` | `64`    | Size of each row's value field in bytes. |
+| `--batch <N>`    | `1`     | Number of rows fetched per transaction.  |
+
+Example:
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment my-read \
+  -n 100000 -c 16 \
+  read --rows 100000 --size 64 --batch 1
+```
+
+#### `write` — sequential inserts
+
+Inserts rows with sequentially incrementing primary keys. Tests write throughput and measures the
+cost of Raft consensus and fsync on the critical path.
+
+| Flag             | Default | Description                              |
+| ---------------- | ------- | ---------------------------------------- |
+| `--size <BYTES>` | `64`    | Size of each row's value field in bytes. |
+| `--batch <N>`    | `1`     | Number of rows inserted per transaction. |
+
+Example:
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment my-write \
+  -n 10000 -c 8 \
+  write --size 64 --batch 1
+```
+
+#### `bank` — transactional transfers
+
+Simulates a banking workload: transfers a random amount between randomly chosen accounts. Each
+transaction reads account balances (with a join), checks constraints, and updates two rows. This
+exercises MVCC conflict resolution, secondary indexes, and sorting.
+
+| Flag                 | Default | Description                                 |
+| -------------------- | ------- | ------------------------------------------- |
+| `--customers <N>`    | `100`   | Number of customers in the dataset.         |
+| `--accounts <N>`     | `10`    | Number of accounts per customer.            |
+| `--balance <N>`      | `1000`  | Initial balance of each account.            |
+| `--max-transfer <N>` | `100`   | Maximum amount transferred per transaction. |
+
+Example:
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment my-bank \
+  -n 50000 -c 16 \
+  bank --customers 100 --accounts 10 --balance 1000 --max-transfer 100
+```
+
+#### `range` — range scans
+
+Executes range-scan queries over contiguous key windows. Tests the query engine's ability to
+stream rows and measures the overhead of returning multiple rows per transaction.
+
+| Flag             | Default | Description                                         |
+| ---------------- | ------- | --------------------------------------------------- |
+| `--rows <N>`     | `1000`  | Total number of rows in the dataset.                |
+| `--size <BYTES>` | `64`    | Size of each row's value field in bytes.            |
+| `--width <N>`    | `10`    | Number of rows returned per range-scan transaction. |
+
+Example:
+
+```bash
+cargo run --release --bin workload -- \
+  --experiment my-range \
+  -n 20000 -c 8 \
+  range --rows 100000 --size 64 --width 50
+```
+
+### Output files
+
+For every run, two CSV files are written to `--out-dir`:
+
+**Per-second timeseries** — `<experiment>-<run_id>.csv`
+
+One row is appended every second while the benchmark is running:
+
+| Column     | Description                                        |
+| ---------- | -------------------------------------------------- |
+| `time_s`   | Elapsed time in seconds.                           |
+| `progress` | Fraction of `--count` completed (0–1).             |
+| `txns`     | Cumulative transactions completed so far.          |
+| `rate_tps` | Transactions per second over the whole run so far. |
+| `p50_ms`   | 50th-percentile latency in milliseconds.           |
+| `p90_ms`   | 90th-percentile latency in milliseconds.           |
+| `p99_ms`   | 99th-percentile latency in milliseconds.           |
+| `pmax_ms`  | Maximum observed latency in milliseconds.          |
+
+**Final summary** — `<experiment>-<run_id>-summary.csv`
+
+A single row written after the run completes:
+
+| Column         | Description                                                        |
+| -------------- | ------------------------------------------------------------------ |
+| `experiment`   | The `--experiment` tag.                                            |
+| `run_id`       | Unix timestamp in milliseconds, used to uniquely identify the run. |
+| `workload`     | Subcommand name (`read`, `write`, `bank`, `range`).                |
+| `hosts`        | Semicolon-separated list of hosts used.                            |
+| `concurrency`  | Value of `--concurrency`.                                          |
+| `count`        | Value of `--count`.                                                |
+| `seed`         | Value of `--seed`.                                                 |
+| `total_time_s` | Wall-clock duration of the entire run in seconds.                  |
+| `txns`         | Total transactions completed.                                      |
+| `rate_tps`     | Overall throughput in transactions per second.                     |
+| `p50_ms`       | Final 50th-percentile latency.                                     |
+| `p90_ms`       | Final 90th-percentile latency.                                     |
+| `p99_ms`       | Final 99th-percentile latency.                                     |
+| `pmax_ms`      | Final maximum latency.                                             |
+
+The `run_id` suffix on both filenames ensures that repeated runs with the same `--experiment` tag
+do not overwrite each other.
+
 ## Credits
 
 The toyDB logo is courtesy of [@jonasmerlin](https://github.com/jonasmerlin).
