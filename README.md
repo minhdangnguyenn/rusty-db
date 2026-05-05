@@ -1,4 +1,4 @@
-# <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> toyDB
+# <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> RustyDB, based on toyDB
 
 Distributed SQL database in Rust, built from scratch as an educational project. Main features:
 
