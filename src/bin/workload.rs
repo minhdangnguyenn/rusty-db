@@ -136,7 +136,7 @@ impl Runner {
         std::io::stdout().flush()?;
         let start = Instant::now();
         workload.prepare(&mut client, &mut rng)?;
-        println!("done ({:.3}s)", start.elapsed().as_secs_f64());
+        println!("Prepare Initial Dataset done ({:.3}s)", start.elapsed().as_secs_f64());
         println!("Running Workload !");
 
         let bench_start = Instant::now();
