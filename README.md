@@ -417,19 +417,3 @@ do not overwrite each other.
 ## Credits
 
 The toyDB logo is courtesy of [@jonasmerlin](https://github.com/jonasmerlin).
-
-```
-
-```
-
-```
-
-```
-
-```
-
-```
-
-```
-
-```
