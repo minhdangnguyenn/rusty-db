@@ -116,7 +116,7 @@ impl Runner {
         let mut csv = {
             let f = File::create(&csv_path)?;
             let mut w = BufWriter::new(f);
-            writeln!(w, "time_s,progress,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms")?;
+            writeln!(w, "time_s,progress,txns,rate_tps,p50_ms,p90_ms,p99_ms,max_ms")?;
             w
         };
 
@@ -126,7 +126,7 @@ impl Runner {
             let mut w = BufWriter::new(f);
             writeln!(
                 w,
-                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,pmax_ms"
+                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,max_ms"
             )?;
             w
         };
@@ -186,7 +186,7 @@ impl Runner {
             let ticker = crossbeam::channel::tick(Duration::from_secs(1));
 
             println!();
-            println!("Time   Progress     Txns      Rate       p50       p90       p99      pMax");
+            println!("Time   Progress     Txns      Rate       p50       p90       p99      max");
 
             while let Err(crossbeam::channel::TryRecvError::Empty) = done_rx.try_recv() {
                 crossbeam::select! {
@@ -207,7 +207,7 @@ impl Runner {
                     Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
                 let p99_ms =
                     Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
-                let pmax_ms = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
+                let max_ms = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
 
                 println!(
                     "{:<8} {:>5.1}%  {:>7}  {:>6.0}/s  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms",
@@ -218,13 +218,13 @@ impl Runner {
                     p50_ms,
                     p90_ms,
                     p99_ms,
-                    pmax_ms,
+                    max_ms,
                 );
 
                 writeln!(
                     csv,
                     "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
-                    duration_s, progress, txns, rate_tps, p50_ms, p90_ms, p99_ms, pmax_ms,
+                    duration_s, progress, txns, rate_tps, p50_ms, p90_ms, p99_ms, max_ms,
                 )?;
                 csv.flush()?; // keep data even if benchmark aborts
             }
@@ -241,7 +241,7 @@ impl Runner {
         let p50_ms = Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
         let p90_ms = Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
         let p99_ms = Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
-        let pmax_ms = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
+        let max_ms = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
 
         let hosts = self.hosts.join(";");
 
@@ -261,7 +261,7 @@ impl Runner {
             p50_ms,
             p90_ms,
             p99_ms,
-            pmax_ms,
+            max_ms,
         )?;
         csv_summary.flush()?;
 
