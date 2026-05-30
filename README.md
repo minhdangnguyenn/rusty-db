@@ -388,7 +388,7 @@ One row is appended every second while the benchmark is running:
 | `p50_ms`   | 50th-percentile latency in milliseconds.           |
 | `p90_ms`   | 90th-percentile latency in milliseconds.           |
 | `p99_ms`   | 99th-percentile latency in milliseconds.           |
-| `pmax_ms`  | Maximum observed latency in milliseconds.          |
+| `max_ms`  | Maximum observed latency in milliseconds.          |
 
 **Final summary** — `<experiment>-<run_id>-summary.csv`
 
@@ -409,7 +409,7 @@ A single row written after the run completes:
 | `p50_ms`       | Final 50th-percentile latency.                                     |
 | `p90_ms`       | Final 90th-percentile latency.                                     |
 | `p99_ms`       | Final 99th-percentile latency.                                     |
-| `pmax_ms`      | Final maximum latency.                                             |
+| `max_ms`      | Final maximum latency.                                             |
 
 The `run_id` suffix on both filenames ensures that repeated runs with the same `--experiment` tag
 do not overwrite each other.
