@@ -139,7 +139,7 @@ Preparing initial dataset... done (0.179s)
 Spawning 16 workers... done (0.006s)
 Running workload read (rows=1000 size=64 batch=1)...
 
-Time   Progress     Txns      Rate       p50       p90       p99      pMax
+Time   Progress     Txns      Rate       p50       p90       p99       max
 1.0s      13.1%    13085   13020/s     1.3ms     1.5ms     1.9ms     8.4ms
 2.0s      27.2%    27183   13524/s     1.3ms     1.5ms     1.8ms     8.4ms
 3.0s      41.3%    41301   13702/s     1.2ms     1.5ms     1.8ms     8.4ms
@@ -449,6 +449,49 @@ A single row written after the run completes:
 
 The `run_id` suffix on both filenames ensures that repeated runs with the same `--experiment` tag
 do not overwrite each other.
+
+### Plotting results
+
+A Python plotting script is available at `csv/sample-plot/sample-plot.py`. It accepts one or more CSV
+files and auto-detects whether they are per-second timeseries or summary files, rendering line or
+bar charts respectively.
+
+**Setup** (one-time):
+
+```bash
+cd csv/sample-plot
+python3 -m venv .venv
+source .venv/bin/activate
+pip install matplotlib
+```
+
+**Line chart** — compare throughput and latency over time from per-second CSVs:
+
+```bash
+source .venv/bin/activate
+python sample-plot.py \
+  ../smoke-range-1780568276884.csv ../smoke-range-1780568204199.csv \
+  --labels "Uniform" "Zipf skew=2.0"
+```
+
+**Bar chart** — compare summary metrics (tps, p50, p90, p99):
+
+```bash
+source .venv/bin/activate
+python sample-plot.py \
+  ../smoke-range-1780568276884-summary.csv ../smoke-range-1780568204199-summary.csv \
+  --labels "Uniform" "Zipf skew=2.0" -o summary-plot.png
+```
+
+**Single file:**
+
+```bash
+source .venv/bin/activate
+python sample-plot.py ../smoke-range-1780568276884.csv --labels "Uniform"
+```
+
+The `--labels` flag provides legend labels (one per file). Without it, filenames are used instead.
+Use `-o <name>.png` to set the output image filename (default: `sample-plot.png`).
 
 ## Credits
 

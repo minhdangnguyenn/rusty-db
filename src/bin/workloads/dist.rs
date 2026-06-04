@@ -40,13 +40,12 @@ pub struct DistArgs {
 impl DistArgs {
     pub fn build(&self, num_elements: u64) -> Result<KeyDist> {
         match self.dist {
-            DistKind::Uniform => Ok(KeyDist::Uniform(
-                rand::distr::Uniform::new(1, num_elements + 1)?,
-            )),
-            DistKind::Zipf => Ok(KeyDist::Zipf(rand_distr::Zipf::new(
-                num_elements as f64,
-                self.skew,
-            )?)),
+            DistKind::Uniform => {
+                Ok(KeyDist::Uniform(rand::distr::Uniform::new(1, num_elements + 1)?))
+            }
+            DistKind::Zipf => {
+                Ok(KeyDist::Zipf(rand_distr::Zipf::new(num_elements as f64, self.skew)?))
+            }
         }
     }
 }
