@@ -5,3 +5,32 @@
 .DS_Store
 .vscode/
 **/*.rs.bk
+
+# Terraform GitIgnore
+
+# 1. Local Secrets & Keys (Your custom GCP key folder)
+/terraform/keys
+
+*.json
+
+# 2. Local working directory (Contains downloaded plugins and binaries)
+.terraform/
+
+# 3. Terraform State Files (Contains highly sensitive infrastructure data)
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+# 4. Variables files (If you ever use secret .tfvars files for passwords/tokens)
+*.tfvars
+*.tfvars.json
+
+# 5. Override files (Used for local testing tweaks)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# 6. CLI configuration file
+.terraformrc
+terraform.rc
