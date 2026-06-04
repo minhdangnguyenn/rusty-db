@@ -1,15 +1,15 @@
 use std::cmp::min;
 
 use itertools::Itertools as _;
-use rand::distr::Distribution as _;
 use rand::rngs::StdRng;
+use rand::RngExt as _;
 use rand::seq::IndexedRandom as _;
 
 use toydb::Client;
 use toydb::error::Result;
 use toydb::sql::types::Row;
 
-use super::Workload;
+use super::{DistArgs, Workload};
 
 /// A bank workload, making transfers between customer accounts.
 #[derive(clap::Args, Clone)]
@@ -30,11 +30,18 @@ pub struct Bank {
     /// Max amount to transfer.
     #[arg(short, long, default_value = "50")]
     max_transfer: u64,
+
+    #[command(flatten)]
+    dist: DistArgs,
 }
 
 impl std::fmt::Display for Bank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "bank (customers={} accounts={})", self.customers, self.accounts)
+        write!(
+            f,
+            "bank ({} customers={} accounts={})",
+            self.dist, self.customers, self.accounts,
+        )
     }
 }
 
@@ -86,13 +93,19 @@ impl Workload for Bank {
     }
 
     fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        let customers = self.customers;
+        let dist = self.dist.build(self.customers)?;
         let max_transfer = self.max_transfer;
-        Ok(rand::distr::Uniform::new_inclusive(0, u64::MAX)?
-            .sample_iter(rng)
-            .tuples()
-            .map(move |(a, b, c)| (a % customers + 1, b % customers + 1, c % max_transfer + 1))
-            .filter(|(from, to, _)| from != to))
+        let mut rng = rng;
+        Ok(std::iter::repeat_with(move || {
+            loop {
+                let from = dist.sample(&mut rng);
+                let to = dist.sample(&mut rng);
+                if from != to {
+                    let amount = rng.random_range(1..=max_transfer);
+                    return (from, to, amount);
+                }
+            }
+        }))
     }
 
     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {

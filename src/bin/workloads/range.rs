@@ -6,7 +6,7 @@ use toydb::Client;
 use toydb::error::Result;
 use toydb::sql::types::Rows;
 
-use super::Workload;
+use super::{DistArgs, KeyDist, Workload};
 
 /// Range-scan workload over the PRIMARY KEY (default B-tree ordering).
 #[derive(clap::Args, Clone)]
@@ -23,11 +23,18 @@ pub struct Range {
     /// Number of rows returned per query (controls selectivity).
     #[arg(short, long, default_value = "100")]
     width: u64,
+
+    #[command(flatten)]
+    dist: DistArgs,
 }
 
 impl std::fmt::Display for Range {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "range (rows={} size={} width={})", self.rows, self.size, self.width)
+        write!(
+            f,
+            "range ({} rows={} size={} width={})",
+            self.dist, self.rows, self.size, self.width,
+        )
     }
 }
 
@@ -60,7 +67,7 @@ impl Workload for Range {
             rng,
             rows: self.rows,
             width: self.width.max(1).min(self.rows),
-            dist: rand::distr::Uniform::new(1, self.rows + 1)?,
+            dist: self.dist.build(self.rows)?,
         })
     }
 
@@ -83,7 +90,7 @@ struct RangeGenerator {
     rng: StdRng,
     rows: u64,
     width: u64,
-    dist: rand::distr::Uniform<u64>,
+    dist: KeyDist,
 }
 
 impl Iterator for RangeGenerator {

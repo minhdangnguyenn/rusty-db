@@ -1,6 +1,6 @@
-# <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> RustyDB, based on toyDB
+# <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> toyDB
 
-Distributed SQL database in Rust, built from scratch as an educational project. Main features:
+A distributed SQL database in Rust, built from scratch as an educational project. Main features:
 
 - [Raft distributed consensus][raft] for linearizable state machine replication.
 
@@ -158,6 +158,11 @@ The available workloads are:
 - `write`: single-row inserts to sequential primary keys.
 - `bank`: bank transfers between various customers and accounts. To make things interesting, this
   includes joins, secondary indexes, sorting, and conflicts.
+- `range`: range scans over contiguous key windows.
+
+By default, workloads use a **uniform** random distribution for key selection. Pass `--dist zipf`
+and `--skew <F>` to use a [Zipfian (power-law) distribution](https://en.wikipedia.org/wiki/Zipf%27s_law)
+for non-uniform access patterns (supported by `read`, `range`, and `bank`).
 
 For more information about workloads and parameters, run `cargo run --bin workload -- --help`.
 
@@ -171,6 +176,7 @@ expense of durability).
 | `read`   | 14163 txn/s | 13941 txn/s       | 13949 txn/s |
 | `write`  | 35 txn/s    | 4719 txn/s        | 7781 txn/s  |
 | `bank`   | 21 txn/s    | 1120 txn/s        | 1346 txn/s  |
+| `range`  | 580 txn/s   | 583 txn/s         | 582 txn/s   |
 
 ## Debugging
 
@@ -235,6 +241,9 @@ cargo run --release --bin workload -- --experiment smoke-bank  -n 1000 -c 4 bank
 cargo run --release --bin workload -- --experiment smoke-range -n 1000 -c 4 range --rows 10000 --size 16 --width 10
 ```
 
+To verify non-uniform distributions as well, append `--dist zipf --skew 1.5` to any of the `read`,
+`range`, or `bank` commands above.
+
 ## Workload CLI reference
 
 This section documents the `workload` benchmark CLI in full. The binary is defined in
@@ -295,19 +304,28 @@ completed across all workers. This spreads load evenly across every node in the 
 Executes single-row `SELECT` statements by primary key. Tests read throughput and latency under
 a purely read workload.
 
-| Flag             | Default | Description                              |
-| ---------------- | ------- | ---------------------------------------- |
-| `--rows <N>`     | `1000`  | Number of rows in the dataset.           |
-| `--size <BYTES>` | `64`    | Size of each row's value field in bytes. |
-| `--batch <N>`    | `1`     | Number of rows fetched per transaction.  |
+| Flag             | Default   | Description                                                      |
+| ---------------- | --------- | ---------------------------------------------------------------- |
+| `--rows <N>`     | `1000`    | Number of rows in the dataset.                                   |
+| `--size <BYTES>` | `64`      | Size of each row's value field in bytes.                         |
+| `--batch <N>`    | `1`       | Number of rows fetched per transaction.                          |
+| `--dist <KIND>`  | `uniform` | Key distribution: `uniform` or `zipf`.                           |
+| `--skew <F>`     | `1.0`     | Zipf exponent (higher = more skewed; only meaningful with zipf). |
 
-Example:
+Examples:
 
 ```bash
+# Uniform random lookups
 cargo run --release --bin workload -- \
   --experiment my-read \
   -n 100000 -c 16 \
   read --rows 100000 --size 64 --batch 1
+
+# Zipfian (power-law) lookups with skew 1.5
+cargo run --release --bin workload -- \
+  --experiment my-read-zipf \
+  -n 100000 -c 16 \
+  read --rows 100000 --size 64 --batch 1 --dist zipf --skew 1.5
 ```
 
 #### `write` — sequential inserts
@@ -335,20 +353,29 @@ Simulates a banking workload: transfers a random amount between randomly chosen 
 transaction reads account balances (with a join), checks constraints, and updates two rows. This
 exercises MVCC conflict resolution, secondary indexes, and sorting.
 
-| Flag                 | Default | Description                                 |
-| -------------------- | ------- | ------------------------------------------- |
-| `--customers <N>`    | `100`   | Number of customers in the dataset.         |
-| `--accounts <N>`     | `10`    | Number of accounts per customer.            |
-| `--balance <N>`      | `1000`  | Initial balance of each account.            |
-| `--max-transfer <N>` | `100`   | Maximum amount transferred per transaction. |
+| Flag                 | Default   | Description                                                      |
+| -------------------- | --------- | ---------------------------------------------------------------- |
+| `--customers <N>`    | `100`     | Number of customers in the dataset.                              |
+| `--accounts <N>`     | `10`      | Number of accounts per customer.                                 |
+| `--balance <N>`      | `1000`    | Initial balance of each account.                                 |
+| `--max-transfer <N>` | `100`     | Maximum amount transferred per transaction.                      |
+| `--dist <KIND>`      | `uniform` | Key distribution: `uniform` or `zipf` (applies to customer IDs). |
+| `--skew <F>`         | `1.0`     | Zipf exponent (higher = more skewed; only meaningful with zipf). |
 
-Example:
+Examples:
 
 ```bash
+# Uniform customer selection
 cargo run --release --bin workload -- \
   --experiment my-bank \
   -n 50000 -c 16 \
   bank --customers 100 --accounts 10 --balance 1000 --max-transfer 100
+
+# Hot-customer bias with Zipfian distribution
+cargo run --release --bin workload -- \
+  --experiment my-bank-zipf \
+  -n 50000 -c 16 \
+  bank --customers 100 --accounts 10 --balance 1000 --max-transfer 100 --dist zipf --skew 1.2
 ```
 
 #### `range` — range scans
@@ -356,19 +383,28 @@ cargo run --release --bin workload -- \
 Executes range-scan queries over contiguous key windows. Tests the query engine's ability to
 stream rows and measures the overhead of returning multiple rows per transaction.
 
-| Flag             | Default | Description                                         |
-| ---------------- | ------- | --------------------------------------------------- |
-| `--rows <N>`     | `1000`  | Total number of rows in the dataset.                |
-| `--size <BYTES>` | `64`    | Size of each row's value field in bytes.            |
-| `--width <N>`    | `10`    | Number of rows returned per range-scan transaction. |
+| Flag             | Default   | Description                                                      |
+| ---------------- | --------- | ---------------------------------------------------------------- |
+| `--rows <N>`     | `1000`    | Total number of rows in the dataset.                             |
+| `--size <BYTES>` | `64`      | Size of each row's value field in bytes.                         |
+| `--width <N>`    | `10`      | Number of rows returned per range-scan transaction.              |
+| `--dist <KIND>`  | `uniform` | Key distribution: `uniform` or `zipf` (applies to scan start).   |
+| `--skew <F>`     | `1.0`     | Zipf exponent (higher = more skewed; only meaningful with zipf). |
 
-Example:
+Examples:
 
 ```bash
+# Uniform range-start distribution
 cargo run --release --bin workload -- \
   --experiment my-range \
   -n 20000 -c 8 \
   range --rows 100000 --size 64 --width 50
+
+# Hotspot-biased range scans with Zipfian start positions
+cargo run --release --bin workload -- \
+  --experiment my-range-zipf \
+  -n 20000 -c 8 \
+  range --rows 100000 --size 64 --width 50 --dist zipf --skew 2.0
 ```
 
 ### Output files
@@ -388,7 +424,7 @@ One row is appended every second while the benchmark is running:
 | `p50_ms`   | 50th-percentile latency in milliseconds.           |
 | `p90_ms`   | 90th-percentile latency in milliseconds.           |
 | `p99_ms`   | 99th-percentile latency in milliseconds.           |
-| `max_ms`  | Maximum observed latency in milliseconds.          |
+| `max_ms`   | Maximum observed latency in milliseconds.          |
 
 **Final summary** — `<experiment>-<run_id>-summary.csv`
 
@@ -409,7 +445,7 @@ A single row written after the run completes:
 | `p50_ms`       | Final 50th-percentile latency.                                     |
 | `p90_ms`       | Final 90th-percentile latency.                                     |
 | `p99_ms`       | Final 99th-percentile latency.                                     |
-| `max_ms`      | Final maximum latency.                                             |
+| `max_ms`       | Final maximum latency.                                             |
 
 The `run_id` suffix on both filenames ensures that repeated runs with the same `--experiment` tag
 do not overwrite each other.

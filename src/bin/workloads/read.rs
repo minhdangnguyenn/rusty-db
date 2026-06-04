@@ -8,7 +8,7 @@ use toydb::Client;
 use toydb::error::Result;
 use toydb::sql::types::Rows;
 
-use super::Workload;
+use super::{DistArgs, KeyDist, Workload};
 
 /// A read-only workload. Creates an id,value table and populates it with the
 /// given row count and value size. Then runs batches of random primary key
@@ -27,11 +27,14 @@ pub struct Read {
     /// Number of rows to fetch in a single select.
     #[arg(short, long, default_value = "1")]
     batch: usize,
+
+    #[command(flatten)]
+    dist: DistArgs,
 }
 
 impl std::fmt::Display for Read {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "read (rows={} size={} batch={})", self.rows, self.size, self.batch)
+        write!(f, "read ({} rows={} size={} batch={})", self.dist, self.rows, self.size, self.batch,)
     }
 }
 
@@ -60,11 +63,7 @@ impl Workload for Read {
     }
 
     fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        Ok(ReadGenerator {
-            batch: self.batch,
-            dist: rand::distr::Uniform::new(1, self.rows + 1)?,
-            rng,
-        })
+        Ok(ReadGenerator { batch: self.batch, dist: self.dist.build(self.rows)?, rng })
     }
 
     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
@@ -89,7 +88,7 @@ impl Workload for Read {
 struct ReadGenerator {
     batch: usize,
     rng: StdRng,
-    dist: rand::distr::Uniform<u64>,
+    dist: KeyDist,
 }
 
 impl Iterator for ReadGenerator {
@@ -97,11 +96,8 @@ impl Iterator for ReadGenerator {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut ids = HashSet::new();
-        for id in self.dist.sample_iter(&mut self.rng) {
-            ids.insert(id);
-            if ids.len() >= self.batch {
-                break;
-            }
+        while ids.len() < self.batch {
+            ids.insert(self.dist.sample(&mut self.rng));
         }
         Some(ids)
     }

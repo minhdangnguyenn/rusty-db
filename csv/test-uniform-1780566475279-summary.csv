@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,max_ms
+"test-uniform",1780566475279,"read (dist=uniform rows=1000 size=64 batch=1)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",4,1000,16791084677885396490,0.208,1000,4814.268,0.818175,1.030143,2.643967,7.557119

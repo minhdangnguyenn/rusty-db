@@ -1,11 +1,13 @@
 #![allow(clippy::module_name_repetitions)]
 
 mod bank;
+mod dist;
 mod range;
 mod read;
 mod write;
 
 pub use bank::Bank;
+pub use dist::{DistArgs, KeyDist};
 pub use range::Range;
 pub use read::Read;
 pub use write::Write;
