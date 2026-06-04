@@ -1,6 +1,8 @@
-# <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> toyDB
+# <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> RustyDB
 
-A distributed SQL database in Rust, built from scratch as an educational project. Main features:
+This project is based on [toyDB](https://github.com/erikgrinaker/toydb), a distributed SQL database in Rust, built from scratch as an educational project. This project is used in Performance Analysis and Modeling Systems in TU Darmstadt (Systems Department).
+
+Main features:
 
 - [Raft distributed consensus][raft] for linearizable state machine replication.
 
