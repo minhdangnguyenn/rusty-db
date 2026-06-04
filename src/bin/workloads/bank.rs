@@ -1,8 +1,8 @@
 use std::cmp::min;
 
 use itertools::Itertools as _;
-use rand::rngs::StdRng;
 use rand::RngExt as _;
+use rand::rngs::StdRng;
 use rand::seq::IndexedRandom as _;
 
 use toydb::Client;
@@ -37,11 +37,7 @@ pub struct Bank {
 
 impl std::fmt::Display for Bank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "bank ({} customers={} accounts={})",
-            self.dist, self.customers, self.accounts,
-        )
+        write!(f, "bank ({} customers={} accounts={})", self.dist, self.customers, self.accounts,)
     }
 }
 
