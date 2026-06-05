@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
@@ -27,6 +28,22 @@ def experiment_names(data):
     return " ".join(sorted(names))
 
 
+def guess_output(files):
+    if len(files) == 1:
+        base = os.path.splitext(os.path.basename(files[0]))[0]
+        if base.endswith("-summary"):
+            base = base[: -len("-summary")]
+        return base + ".png"
+    return "comparison.png"
+
+
+def guess_label(path):
+    data = load_csv(path)
+    if data and "experiment" in data[0]:
+        return data[0]["experiment"]
+    return os.path.basename(path)
+
+
 def plot_timeseries(files, labels, output):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
@@ -37,9 +54,10 @@ def plot_timeseries(files, labels, output):
         p50 = [r["p50_ms"] for r in data]
         p99 = [r["p99_ms"] for r in data]
 
-        ax1.plot(t, tps, label=label)
-        ax2.plot(t, p50, label=f"{label} p50")
-        ax2.plot(t, p99, label=f"{label} p99", linestyle="--")
+        marker = "o" if len(t) == 1 else ""
+        ax1.plot(t, tps, marker=marker, label=label)
+        ax2.plot(t, p50, marker=marker, label=f"{label} p50")
+        ax2.plot(t, p99, marker=marker, linestyle="--", label=f"{label} p99")
 
     exp = experiment_names(load_csv(files[0]))
     title = f"{exp} - " if exp else ""
@@ -92,23 +110,26 @@ def main():
     parser = argparse.ArgumentParser(description="Plot benchmark CSV data")
     parser.add_argument("files", nargs="+", help="CSV file(s) to plot")
     parser.add_argument(
-        "--labels", nargs="+", help="Legend labels (default: filenames)"
+        "--labels",
+        nargs="+",
+        help="Legend labels (default: experiment name or filename)",
     )
     parser.add_argument(
-        "-o", "--output", default="sample-plot.png", help="Output image file"
+        "-o", "--output", help="Output image file (default: derived from input name)"
     )
     args = parser.parse_args()
 
-    labels = args.labels if args.labels else [f.split("/")[-1] for f in args.files]
+    labels = args.labels if args.labels else [guess_label(f) for f in args.files]
+    output = args.output if args.output else guess_output(args.files)
 
     if len(labels) != len(args.files):
         parser.error("number of --labels must match number of files")
 
     sample = load_csv(args.files[0])
     if "time_s" in sample[0]:
-        plot_timeseries(args.files, labels, args.output)
+        plot_timeseries(args.files, labels, output)
     else:
-        plot_summary(args.files, labels, args.output)
+        plot_summary(args.files, labels, output)
 
 
 if __name__ == "__main__":
