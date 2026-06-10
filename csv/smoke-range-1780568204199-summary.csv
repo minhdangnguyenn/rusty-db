@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,max_ms
-"smoke-range-skewd2.0",1780568204199,"range (dist=zipf skew=2 rows=1000 size=64 width=50)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",8,20000,16791084677885396490,44.510,20000,449.339,16.424959,21.872639,56.590335,91.619327
