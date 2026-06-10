@@ -180,6 +180,20 @@ extension can be used to debug toyDB, with the debug configuration under `.vscod
 Under the "Run and Debug" tab, select e.g. "Debug executable 'toydb'" or "Debug unit tests in
 library 'toydb'".
 
+## My scripts
+
+```bash
+bash scripts/<expriment-name>
+```
+
+e.g.,
+
+```bash
+bash scripts/no-cache/read-s-uniform.sh
+```
+
+- Use sanitize script to sanitize the data in all nodes and restart the cluster if error happens
+
 ## Credits
 
 The toyDB logo is courtesy of [@jonasmerlin](https://github.com/jonasmerlin).
