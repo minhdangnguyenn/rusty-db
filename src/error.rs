@@ -169,12 +169,6 @@ impl From<rand::distr::uniform::Error> for Error {
     }
 }
 
-impl From<rand_distr::ZipfError> for Error {
-    fn from(err: rand_distr::ZipfError) -> Self {
-        Error::InvalidInput(err.to_string())
-    }
-}
-
 impl From<regex::Error> for Error {
     fn from(err: regex::Error) -> Self {
         panic!("{err}") // faulty code

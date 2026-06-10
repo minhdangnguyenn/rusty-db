@@ -113,15 +113,15 @@ impl Shell {
             // Displays help.
             ("!help", []) => println!(
                 r#"
-                Enter a SQL statement terminated by a semicolon (;) to execute it, or Ctrl-D to
-                exit. The following commands are also available:
+Enter a SQL statement terminated by a semicolon (;) to execute it, or Ctrl-D to
+exit. The following commands are also available:
 
-			    !headers           Toggles column headers
-			    !help              This help message
-			    !status            Display server status
-			    !table NAME        Display a table schema
-			    !tables            List tables
-			"#
+    !headers           Toggles column headers
+    !help              This help message
+    !status            Display server status
+    !table NAME        Display a table schema
+    !tables            List tables
+"#
             ),
             ("!help", _) => return errinput!("!help takes no arguments"),
 
@@ -130,12 +130,12 @@ impl Shell {
                 let status = self.client.status()?;
                 println!(
                     r#"
-					Server:       n{server} with Raft leader n{leader} in term {term} for {nodes} nodes
-					Raft log:     {committed} committed, {applied} applied, {raft_size} MB, {raft_garbage}% garbage ({raft_storage} engine)
-					Replication:  {raft_match}
-					SQL storage:  {sql_keys} keys, {sql_size} MB logical, {nodes}x {sql_disk_size} MB disk, {sql_garbage}% garbage ({sql_storage} engine)
-					Transactions: {active_txns} active, {versions} total
-					"#,
+Server:       n{server} with Raft leader n{leader} in term {term} for {nodes} nodes
+Raft log:     {committed} committed, {applied} applied, {raft_size} MB, {raft_garbage}% garbage ({raft_storage} engine)
+Replication:  {raft_match}
+SQL storage:  {sql_keys} keys, {sql_size} MB logical, {nodes}x {sql_disk_size} MB disk, {sql_garbage}% garbage ({sql_storage} engine)
+Transactions: {active_txns} active, {versions} total
+"#,
                     server = status.server,
                     leader = status.raft.leader,
                     term = status.raft.term,

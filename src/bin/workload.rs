@@ -23,14 +23,14 @@ use rand::rngs::StdRng;
 use toydb::Client;
 use toydb::error::Result;
 
-use workloads::{Bank, Range, Read, Workload, Write};
+use workloads::{Range, Read, Workload};
 
 fn main() {
     let Command { runner, subcommand } = Command::parse();
     let result = match subcommand {
         Subcommand::Read(read) => runner.run(read),
-        Subcommand::Write(write) => runner.run(write),
-        Subcommand::Bank(bank) => runner.run(bank),
+        // Subcommand::Write(write) => runner.run(write),
+        // Subcommand::Bank(bank) => runner.run(bank),
         Subcommand::Range(range) => runner.run(range),
     };
     if let Err(error) = result {
@@ -52,8 +52,8 @@ struct Command {
 #[derive(clap::Subcommand)]
 enum Subcommand {
     Read(Read),
-    Write(Write),
-    Bank(Bank),
+    // Write(Write),
+    // Bank(Bank),
     Range(Range),
 }
 
