@@ -8,7 +8,7 @@
 
 #![warn(clippy::all)]
 
-use std::cmp::min;
+// use std::cmp::min;
 use std::collections::HashSet;
 use std::fs::{File, create_dir_all};
 use std::io::{BufWriter, Write as _};
@@ -21,18 +21,24 @@ use itertools::Itertools as _;
 use rand::SeedableRng as _;
 use rand::distr::Distribution as _;
 use rand::rngs::StdRng;
-use rand::seq::IndexedRandom as _;
+//use rand::seq::IndexedRandom as _;
 
 use toydb::error::Result;
-use toydb::sql::types::{Row, Rows};
-use toydb::{Client, StatementResult};
+use toydb::sql::types::{
+    // Row,
+    Rows,
+};
+use toydb::{
+    Client,
+    // StatementResult
+};
 
 fn main() {
     let Command { runner, subcommand } = Command::parse();
     let result = match subcommand {
         Subcommand::Read(read) => runner.run(read),
-        Subcommand::Write(write) => runner.run(write),
-        Subcommand::Bank(bank) => runner.run(bank),
+        //Subcommand::Write(write) => runner.run(write),
+        //Subcommand::Bank(bank) => runner.run(bank),
     };
     if let Err(error) = result {
         eprintln!("Error: {error}")
@@ -53,8 +59,8 @@ struct Command {
 #[derive(clap::Subcommand)]
 enum Subcommand {
     Read(Read),
-    Write(Write),
-    Bank(Bank),
+    //Write(Write),
+    //Bank(Bank),
 }
 
 /// Runs a workload benchmark.
@@ -395,229 +401,229 @@ impl Iterator for ReadGenerator {
     }
 }
 
-/// A write-only workload. Creates an id,value table, and writes rows with
-/// sequential primary keys and the given value size, in the given batch size
-/// (INSERT INTO write (id, value) VALUES ...). The number of rows written
-/// is given by Runner.count * Write.batch.
-#[derive(clap::Args, Clone)]
-#[command(about = "A write-only workload writing sequential rows")]
-struct Write {
-    /// Row value size (excluding primary key).
-    #[arg(short, long, default_value = "64")]
-    size: usize,
+// /// A write-only workload. Creates an id,value table, and writes rows with
+// /// sequential primary keys and the given value size, in the given batch size
+// /// (INSERT INTO write (id, value) VALUES ...). The number of rows written
+// /// is given by Runner.count * Write.batch.
+// #[derive(clap::Args, Clone)]
+// #[command(about = "A write-only workload writing sequential rows")]
+// struct Write {
+//     /// Row value size (excluding primary key).
+//     #[arg(short, long, default_value = "64")]
+//     size: usize,
 
-    /// Number of rows to write in a single insert query.
-    #[arg(short, long, default_value = "1")]
-    batch: usize,
-}
+//     /// Number of rows to write in a single insert query.
+//     #[arg(short, long, default_value = "1")]
+//     batch: usize,
+// }
 
-impl std::fmt::Display for Write {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "write (size={} batch={})", self.size, self.batch)
-    }
-}
+// impl std::fmt::Display for Write {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "write (size={} batch={})", self.size, self.batch)
+//     }
+// }
 
-impl Workload for Write {
-    type Item = Vec<(u64, String)>;
+// impl Workload for Write {
+//     type Item = Vec<(u64, String)>;
 
-    fn prepare(&self, client: &mut Client, _: &mut StdRng) -> Result<()> {
-        client.execute("BEGIN")?;
-        client.execute(r#"DROP TABLE IF EXISTS "write""#)?;
-        client.execute(r#"CREATE TABLE "write" (id INT PRIMARY KEY, value STRING NOT NULL)"#)?;
-        client.execute("COMMIT")?;
-        Ok(())
-    }
+//     fn prepare(&self, client: &mut Client, _: &mut StdRng) -> Result<()> {
+//         client.execute("BEGIN")?;
+//         client.execute(r#"DROP TABLE IF EXISTS "write""#)?;
+//         client.execute(r#"CREATE TABLE "write" (id INT PRIMARY KEY, value STRING NOT NULL)"#)?;
+//         client.execute("COMMIT")?;
+//         Ok(())
+//     }
 
-    fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        Ok(WriteGenerator { next_id: 1, size: self.size, batch: self.batch, rng })
-    }
+//     fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
+//         Ok(WriteGenerator { next_id: 1, size: self.size, batch: self.batch, rng })
+//     }
 
-    fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
-        let batch_size = item.len();
-        let query = format!(
-            r#"INSERT INTO "write" (id, value) VALUES {}"#,
-            item.iter().map(|(id, value)| format!("({}, '{}')", id, value)).join(", ")
-        );
-        if let StatementResult::Insert { count } = client.execute(&query)? {
-            assert_eq!(count as usize, batch_size, "Unexpected row count");
-        } else {
-            panic!("Unexpected result")
-        }
-        Ok(())
-    }
+//     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
+//         let batch_size = item.len();
+//         let query = format!(
+//             r#"INSERT INTO "write" (id, value) VALUES {}"#,
+//             item.iter().map(|(id, value)| format!("({}, '{}')", id, value)).join(", ")
+//         );
+//         if let StatementResult::Insert { count } = client.execute(&query)? {
+//             assert_eq!(count as usize, batch_size, "Unexpected row count");
+//         } else {
+//             panic!("Unexpected result")
+//         }
+//         Ok(())
+//     }
 
-    fn verify(&self, client: &mut Client, txns: usize) -> Result<()> {
-        let count: i64 = client.execute(r#"SELECT COUNT(*) FROM "write""#)?.try_into()?;
-        assert_eq!(count as usize, txns * self.batch, "Unexpected row count");
-        Ok(())
-    }
-}
+//     fn verify(&self, client: &mut Client, txns: usize) -> Result<()> {
+//         let count: i64 = client.execute(r#"SELECT COUNT(*) FROM "write""#)?.try_into()?;
+//         assert_eq!(count as usize, txns * self.batch, "Unexpected row count");
+//         Ok(())
+//     }
+// }
 
-/// A Write workload generator, yielding batches of sequential primary keys and
-/// random rows.
-struct WriteGenerator {
-    next_id: u64,
-    size: usize,
-    batch: usize,
-    rng: StdRng,
-}
+// /// A Write workload generator, yielding batches of sequential primary keys and
+// /// random rows.
+// struct WriteGenerator {
+//     next_id: u64,
+//     size: usize,
+//     batch: usize,
+//     rng: StdRng,
+// }
 
-impl Iterator for WriteGenerator {
-    type Item = <Write as Workload>::Item;
+// impl Iterator for WriteGenerator {
+//     type Item = <Write as Workload>::Item;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let chars = &mut rand::distr::Alphanumeric.sample_iter(&mut self.rng).map(|b| b as char);
-        let mut rows = Vec::with_capacity(self.batch);
-        while rows.len() < self.batch {
-            rows.push((self.next_id, chars.take(self.size).collect()));
-            self.next_id += 1;
-        }
-        Some(rows)
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let chars = &mut rand::distr::Alphanumeric.sample_iter(&mut self.rng).map(|b| b as char);
+//         let mut rows = Vec::with_capacity(self.batch);
+//         while rows.len() < self.batch {
+//             rows.push((self.next_id, chars.take(self.size).collect()));
+//             self.next_id += 1;
+//         }
+//         Some(rows)
+//     }
+// }
 
-/// A bank workload. Creates a set of customers and accounts, and makes random
-/// transfers between them. Specifically, it picks two random customers A and B,
-/// and then finds A's highest-balance account and B's lowest-balance account,
-/// and transfers a random amount without overdrawing the account. This
-/// somewhat convoluted scheme is used to make the workload slightly less
-/// trivial, including joins, ordering, and secondary indexes.
-#[derive(clap::Args, Clone)]
-#[command(about = "A bank workload, making transfers between customer accounts")]
-struct Bank {
-    /// Number of customers.
-    #[arg(short, long, default_value = "100")]
-    customers: u64,
+// /// A bank workload. Creates a set of customers and accounts, and makes random
+// /// transfers between them. Specifically, it picks two random customers A and B,
+// /// and then finds A's highest-balance account and B's lowest-balance account,
+// /// and transfers a random amount without overdrawing the account. This
+// /// somewhat convoluted scheme is used to make the workload slightly less
+// /// trivial, including joins, ordering, and secondary indexes.
+// #[derive(clap::Args, Clone)]
+// #[command(about = "A bank workload, making transfers between customer accounts")]
+// struct Bank {
+//     /// Number of customers.
+//     #[arg(short, long, default_value = "100")]
+//     customers: u64,
 
-    /// Number of accounts per customer.
-    #[arg(short, long, default_value = "10")]
-    accounts: u64,
+//     /// Number of accounts per customer.
+//     #[arg(short, long, default_value = "10")]
+//     accounts: u64,
 
-    /// Initial account balance.
-    #[arg(short, long, default_value = "100")]
-    balance: u64,
+//     /// Initial account balance.
+//     #[arg(short, long, default_value = "100")]
+//     balance: u64,
 
-    /// Max amount to transfer.
-    #[arg(short, long, default_value = "50")]
-    max_transfer: u64,
-}
+//     /// Max amount to transfer.
+//     #[arg(short, long, default_value = "50")]
+//     max_transfer: u64,
+// }
 
-impl std::fmt::Display for Bank {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "bank (customers={} accounts={})", self.customers, self.accounts)
-    }
-}
+// impl std::fmt::Display for Bank {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "bank (customers={} accounts={})", self.customers, self.accounts)
+//     }
+// }
 
-impl Workload for Bank {
-    type Item = (u64, u64, u64); // from,to,amount
+// impl Workload for Bank {
+//     type Item = (u64, u64, u64); // from,to,amount
 
-    fn prepare(&self, client: &mut Client, rng: &mut StdRng) -> Result<()> {
-        let petnames = petname::Petnames::default();
-        client.execute("BEGIN")?;
-        client.execute("DROP TABLE IF EXISTS account")?;
-        client.execute("DROP TABLE IF EXISTS customer")?;
-        client.execute(
-            "CREATE TABLE customer (
-                    id INTEGER PRIMARY KEY,
-                    name STRING NOT NULL
-                )",
-        )?;
-        client.execute(
-            "CREATE TABLE account (
-                    id INTEGER PRIMARY KEY,
-                    customer_id INTEGER NOT NULL INDEX REFERENCES customer,
-                    balance INTEGER NOT NULL
-                )",
-        )?;
-        client.execute(&format!(
-            "INSERT INTO customer VALUES {}",
-            (1..=self.customers)
-                .map(|id| {
-                    let name = [
-                        *petnames.adverbs.choose(rng).expect("no adverb"),
-                        *petnames.adjectives.choose(rng).expect("no adjective"),
-                        *petnames.nouns.choose(rng).expect("no noun"),
-                    ]
-                    .join(" ");
-                    (id, name)
-                })
-                .map(|(id, name)| format!("({}, '{}')", id, name))
-                .join(", ")
-        ))?;
-        client.execute(&format!(
-            "INSERT INTO account VALUES {}",
-            (1..=self.customers)
-                .flat_map(|c| (1..=self.accounts).map(move |a| (c, (c - 1) * self.accounts + a)))
-                .map(|(c, a)| format!("({}, {}, {})", a, c, self.balance))
-                .join(", ")
-        ))?;
-        client.execute("COMMIT")?;
-        Ok(())
-    }
+//     fn prepare(&self, client: &mut Client, rng: &mut StdRng) -> Result<()> {
+//         let petnames = petname::Petnames::default();
+//         client.execute("BEGIN")?;
+//         client.execute("DROP TABLE IF EXISTS account")?;
+//         client.execute("DROP TABLE IF EXISTS customer")?;
+//         client.execute(
+//             "CREATE TABLE customer (
+//                     id INTEGER PRIMARY KEY,
+//                     name STRING NOT NULL
+//                 )",
+//         )?;
+//         client.execute(
+//             "CREATE TABLE account (
+//                     id INTEGER PRIMARY KEY,
+//                     customer_id INTEGER NOT NULL INDEX REFERENCES customer,
+//                     balance INTEGER NOT NULL
+//                 )",
+//         )?;
+//         client.execute(&format!(
+//             "INSERT INTO customer VALUES {}",
+//             (1..=self.customers)
+//                 .map(|id| {
+//                     let name = [
+//                         *petnames.adverbs.choose(rng).expect("no adverb"),
+//                         *petnames.adjectives.choose(rng).expect("no adjective"),
+//                         *petnames.nouns.choose(rng).expect("no noun"),
+//                     ]
+//                     .join(" ");
+//                     (id, name)
+//                 })
+//                 .map(|(id, name)| format!("({}, '{}')", id, name))
+//                 .join(", ")
+//         ))?;
+//         client.execute(&format!(
+//             "INSERT INTO account VALUES {}",
+//             (1..=self.customers)
+//                 .flat_map(|c| (1..=self.accounts).map(move |a| (c, (c - 1) * self.accounts + a)))
+//                 .map(|(c, a)| format!("({}, {}, {})", a, c, self.balance))
+//                 .join(", ")
+//         ))?;
+//         client.execute("COMMIT")?;
+//         Ok(())
+//     }
 
-    fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        let customers = self.customers;
-        let max_transfer = self.max_transfer;
-        // Generate random u64s, then pick random from,to,amount as the
-        // remainder of the max customer and amount.
-        Ok(rand::distr::Uniform::new_inclusive(0, u64::MAX)?
-            .sample_iter(rng)
-            .tuples()
-            .map(move |(a, b, c)| (a % customers + 1, b % customers + 1, c % max_transfer + 1))
-            .filter(|(from, to, _)| from != to))
-    }
+//     fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
+//         let customers = self.customers;
+//         let max_transfer = self.max_transfer;
+//         // Generate random u64s, then pick random from,to,amount as the
+//         // remainder of the max customer and amount.
+//         Ok(rand::distr::Uniform::new_inclusive(0, u64::MAX)?
+//             .sample_iter(rng)
+//             .tuples()
+//             .map(move |(a, b, c)| (a % customers + 1, b % customers + 1, c % max_transfer + 1))
+//             .filter(|(from, to, _)| from != to))
+//     }
 
-    fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
-        let &(from, to, mut amount) = item;
+//     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
+//         let &(from, to, mut amount) = item;
 
-        client.execute("BEGIN")?;
+//         client.execute("BEGIN")?;
 
-        let row: Row = client
-            .execute(&format!(
-                "SELECT a.id, a.balance
-                        FROM account a JOIN customer c ON a.customer_id = c.id
-                        WHERE c.id = {}
-                        ORDER BY a.balance DESC
-                        LIMIT 1",
-                from
-            ))?
-            .try_into()?;
-        let mut row = row.into_iter();
-        let from_account: i64 = row.next().unwrap().try_into()?;
-        let from_balance: i64 = row.next().unwrap().try_into()?;
-        amount = min(amount, from_balance as u64);
+//         let row: Row = client
+//             .execute(&format!(
+//                 "SELECT a.id, a.balance
+//                         FROM account a JOIN customer c ON a.customer_id = c.id
+//                         WHERE c.id = {}
+//                         ORDER BY a.balance DESC
+//                         LIMIT 1",
+//                 from
+//             ))?
+//             .try_into()?;
+//         let mut row = row.into_iter();
+//         let from_account: i64 = row.next().unwrap().try_into()?;
+//         let from_balance: i64 = row.next().unwrap().try_into()?;
+//         amount = min(amount, from_balance as u64);
 
-        let to_account: i64 = client
-            .execute(&format!(
-                "SELECT a.id, a.balance
-                        FROM account a JOIN customer c ON a.customer_id = c.id
-                        WHERE c.id = {}
-                        ORDER BY a.balance ASC
-                        LIMIT 1",
-                to
-            ))?
-            .try_into()?;
+//         let to_account: i64 = client
+//             .execute(&format!(
+//                 "SELECT a.id, a.balance
+//                         FROM account a JOIN customer c ON a.customer_id = c.id
+//                         WHERE c.id = {}
+//                         ORDER BY a.balance ASC
+//                         LIMIT 1",
+//                 to
+//             ))?
+//             .try_into()?;
 
-        client.execute(&format!(
-            "UPDATE account SET balance = balance - {} WHERE id = {}",
-            amount, from_account,
-        ))?;
-        client.execute(&format!(
-            "UPDATE account SET balance = balance + {} WHERE id = {}",
-            amount, to_account,
-        ))?;
+//         client.execute(&format!(
+//             "UPDATE account SET balance = balance - {} WHERE id = {}",
+//             amount, from_account,
+//         ))?;
+//         client.execute(&format!(
+//             "UPDATE account SET balance = balance + {} WHERE id = {}",
+//             amount, to_account,
+//         ))?;
 
-        client.execute("COMMIT")?;
+//         client.execute("COMMIT")?;
 
-        Ok(())
-    }
+//         Ok(())
+//     }
 
-    fn verify(&self, client: &mut Client, _: usize) -> Result<()> {
-        let balance: i64 = client.execute("SELECT SUM(balance) FROM account")?.try_into()?;
-        assert_eq!(balance as u64, self.customers * self.accounts * self.balance);
-        let negative: i64 =
-            client.execute("SELECT COUNT(*) FROM account WHERE balance < 0")?.try_into()?;
-        assert_eq!(negative, 0);
-        Ok(())
-    }
-}
+//     fn verify(&self, client: &mut Client, _: usize) -> Result<()> {
+//         let balance: i64 = client.execute("SELECT SUM(balance) FROM account")?.try_into()?;
+//         assert_eq!(balance as u64, self.customers * self.accounts * self.balance);
+//         let negative: i64 =
+//             client.execute("SELECT COUNT(*) FROM account WHERE balance < 0")?.try_into()?;
+//         assert_eq!(negative, 0);
+//         Ok(())
+//     }
+// }
