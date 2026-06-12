@@ -30,6 +30,7 @@ use toydb::sql::types::{
 };
 use toydb::{
     Client,
+    errinput,
     // StatementResult
 };
 
@@ -321,11 +322,22 @@ struct Read {
     /// Number of rows to fetch in a single select.
     #[arg(short, long, default_value = "1")]
     batch: usize,
+
+    #[arg(long, default_value = "uniform")]
+    dist: String,
+
+    /// zipf skew parameter (only used with --dist zipf)
+    #[arg(long, default_value = "1.0")]
+    zipf_skew: f64,
 }
 
 impl std::fmt::Display for Read {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "read (rows={} size={} batch={})", self.rows, self.size, self.batch)
+        write!(
+            f,
+            "read (rows={} size={} batch={} distr={})",
+            self.rows, self.size, self.batch, self.dist
+        )
     }
 }
 
@@ -354,11 +366,12 @@ impl Workload for Read {
     }
 
     fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        Ok(ReadGenerator {
-            batch: self.batch,
-            dist: rand::distr::Uniform::new(1, self.rows + 1)?,
-            rng,
-        })
+        let dist = match self.dist.as_str() {
+            "uniform" => KeyDist::Uniform(rand::distr::Uniform::new(1, self.rows + 1)?),
+            "zipf" => KeyDist::Zipf(rand_distr::Zipf::new(self.rows as f64, self.zipf_skew)?),
+            other => return Err(errinput!("unknown distribution: {other}")),
+        };
+        Ok(ReadGenerator { batch: self.batch, dist: dist, rng })
     }
 
     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
@@ -379,11 +392,26 @@ impl Workload for Read {
     }
 }
 
+/// enum for ReadGeneratore
+enum KeyDist {
+    Uniform(rand::distr::Uniform<u64>),
+    Zipf(rand_distr::Zipf<f64>),
+}
+
+impl rand::distr::Distribution<u64> for KeyDist {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> u64 {
+        match self {
+            KeyDist::Uniform(u) => u.sample(rng),
+            KeyDist::Zipf(z) => z.sample(rng) as u64,
+        }
+    }
+}
+
 /// A Read workload generator, yielding batches of random, unique primary keys.
 struct ReadGenerator {
     batch: usize,
     rng: StdRng,
-    dist: rand::distr::Uniform<u64>,
+    dist: KeyDist,
 }
 
 impl Iterator for ReadGenerator {
@@ -391,7 +419,7 @@ impl Iterator for ReadGenerator {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut ids = HashSet::new();
-        for id in self.dist.sample_iter(&mut self.rng) {
+        for id in (&self.dist).sample_iter(&mut self.rng) {
             ids.insert(id);
             if ids.len() >= self.batch {
                 break;
