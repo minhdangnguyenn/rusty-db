@@ -371,7 +371,7 @@ impl Workload for Read {
             "zipf" => KeyDist::Zipf(rand_distr::Zipf::new(self.rows as f64, self.zipf_skew)?),
             other => return Err(errinput!("unknown distribution: {other}")),
         };
-        Ok(ReadGenerator { batch: self.batch, dist: dist, rng })
+        Ok(ReadGenerator { batch: self.batch, dist, rng })
     }
 
     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
