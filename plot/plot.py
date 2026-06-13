@@ -81,25 +81,41 @@ def plot_timeseries(files, labels, output):
 def plot_summary(files, labels, output):
     data = [load_csv(f) for f in files]
     first = data[0][0]
-
-    metrics = ["rate_tps", "p50_ms", "p90_ms", "p99_ms"]
-    x = range(len(metrics))
-    width = 0.8 / len(files)
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    for i, (rows, label) in enumerate(zip(data, labels)):
-        d = rows[0]
-        values = [d[m] for m in metrics]
-        offset = (i - (len(files) - 1) / 2) * width
-        ax.bar([xi + offset for xi in x], values, width * 0.9, label=label)
-
     exp = first.get("experiment", "")
     title = f"{exp} - " if exp else ""
-    ax.set_xticks(x)
-    ax.set_xticklabels(["Throughput\n[tps]", "p50 [ms]", "p90 [ms]", "p99 [ms]"])
-    ax.set_title(f"{title}Summary comparison")
-    ax.legend()
-    ax.grid(True, linestyle="--", alpha=0.3, axis="y")
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    n = len(files)
+    x = range(n)
+    width = 0.6
+    for i, (rows, label) in enumerate(zip(data, labels)):
+        ax1.bar(i, rows[0]["rate_tps"], width / n, label=label)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels)
+    ax1.set_ylabel("Throughput [tps]")
+    ax1.set_title(f"{title}Throughput")
+    ax1.legend()
+    ax1.grid(True, linestyle="--", alpha=0.3, axis="y")
+
+    metrics = ["p50_ms", "p90_ms", "p99_ms"]
+    mx = range(len(metrics))
+    bar_width = 0.8 / n
+    for i, (rows, label) in enumerate(zip(data, labels)):
+        d = rows[0]
+        offset = (i - (n - 1) / 2) * bar_width
+        ax2.bar(
+            [xi + offset for xi in mx],
+            [d[m] for m in metrics],
+            bar_width * 0.9,
+            label=label,
+        )
+    ax2.set_xticks(mx)
+    ax2.set_xticklabels(["p50", "p90", "p99"])
+    ax2.set_ylabel("Latency [ms]")
+    ax2.set_title(f"{title}Latency")
+    ax2.legend()
+    ax2.grid(True, linestyle="--", alpha=0.3, axis="y")
 
     plt.tight_layout()
     plt.savefig(output, dpi=300)
