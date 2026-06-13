@@ -194,16 +194,16 @@ bash scripts/no-cache/read-s-uniform.sh 1
 
 1 is the param id
 
-- Plot two csv files
-
-```bash
-python3 plot/plot.py csv/read-l-uniform-1-summary.csv csv/read-l-uniform-cache-1-summary.csv --labels no-cache cache -o csv/comparison-l-summary.png
-```
-
 - Plot a single csv file
 
 ```bash
-python3 plot.py ../csv/read-l-uniform-1.csv --labels no-cache
+bash plot/plot.sh ../csv/read-l-uniform-1.csv --labels no-cache
+```
+
+- Plot two csv files
+
+```bash
+bash plot/plot.sh csv/read-l-uniform-1-summary.csv csv/read-l-uniform-cache-1-summary.csv --labels no-cache cache -o csv/comparison-l-summary.png
 ```
 
 - Use sanitize script to sanitize the data in all nodes and restart the cluster if error happens
