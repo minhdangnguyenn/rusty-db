@@ -5,6 +5,7 @@
 .DS_Store
 .vscode/
 **/*.rs.bk
+.venv/
 
 # Terraform GitIgnore
 
