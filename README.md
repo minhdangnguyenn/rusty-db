@@ -192,6 +192,12 @@ e.g.,
 bash scripts/no-cache/read-s-uniform.sh
 ```
 
+- Plot script
+
+```bash
+python3 plot/plot.py csv/read-l-uniform-1781380108093-summary.csv csv/read-l-uniform-cache-1781380134625-summary.csv --labels no-cache cache -o csv/comparison-l-summary.png
+```
+
 - Use sanitize script to sanitize the data in all nodes and restart the cluster if error happens
 
 ## Credits
