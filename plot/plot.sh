@@ -12,6 +12,10 @@
 PYTHON=/tmp/opencode/plot-env/bin/python3
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-$PYTHON "$SCRIPT_DIR/plot-throughput.py" "$@"
-$PYTHON "$SCRIPT_DIR/plot-latency.py" "$@"
+if [ $# -gt 2 ]; then
+  $PYTHON "$SCRIPT_DIR/plot-compare.py" "$@"
+else
+  $PYTHON "$SCRIPT_DIR/plot-throughput.py" "$@"
+  $PYTHON "$SCRIPT_DIR/plot-latency.py" "$@"
+fi
 echo "charts saved to charts/"

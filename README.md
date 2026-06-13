@@ -51,31 +51,50 @@ Verifying dataset... done (0.002s)
 
 ## My scripts
 
+### Run experiments
+
 ```bash
-bash scripts/<cache or no-cache>/<expriment-name> <experiment id>
+bash scripts/<cache or no-cache>/<experiment-name>.sh <experiment-id>
 ```
 
 e.g.,
 
 ```bash
-bash scripts/no-cache/read-s-uniform.sh 1
+bash scripts/no-cache/no-cache-read-s-uniform.sh 1
 ```
 
-1 is the param id
+The id defaults to `1` if omitted.
 
-- Plot a single csv file
+### Plot charts
+
+Two modes: **single** (timeseries) and **compare** (bar chart summary).
+
+**Single chart** — 1 file, optionally with a label:
 
 ```bash
-bash plot/plot.sh ../csv/read-l-uniform-1.csv --labels no-cache
+bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv
+bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv "no-cache"
 ```
 
-- Plot two csv files
+Outputs `charts/<filename>-throughput.png` and `charts/<filename>-latency.png`.
+
+**Compare chart** — 2+ files with `--labels`:
 
 ```bash
-bash plot/plot.sh csv/read-l-uniform-1-summary.csv csv/read-l-uniform-cache-1-summary.csv --labels no-cache cache -o csv/comparison-l-summary.png
+bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv csv/cache-read-s-uniform-1.csv --labels no-cache cache
 ```
 
-- Use sanitize script to sanitize the data in all nodes and restart the cluster if error happens
+Outputs `charts/comparison-throughput.png` and `charts/comparison-latency.png`.
+
+The script auto-detects which mode: 1–2 args = single (timeseries), 3+ args = comparison (bar charts).
+
+### Sanitize
+
+Use the sanitize script to wipe cluster data and restart the nodes if needed:
+
+```bash
+bash scripts/sanitize.sh
+```
 
 ### Cache throughput explanation
 
@@ -92,21 +111,12 @@ throughput stays near-maximum from second 1 because the cache miss phase (first
 — no network, no raft, no disk. the system is cpu-bound on hash lookups, not
 i/o-bound on database queries.
 
-### No-cache throughput dip in first 2 seconds
+### Throughput scaling with concurrency
 
-the dip happens because all 16 workers start simultaneously. in the first
-second, everything is fast — no queues, no backpressure. by the second second,
-raft consensus serialization becomes the bottleneck:
-
-- all reads/writes go through the raft leader
-- with 16 concurrent workers, requests queue up at the leader
-- mvcc transaction management adds overhead as more concurrent transactions
-  contend
-- the system needs ~1 second to settle into steady-state throughput
-
-after second 2, throughput slowly climbs back as the os page cache warms —
-repeated reads hit cached pages instead of disk, partially offsetting the
-raft contention.
+experiments with 1, 4, 8, and 16 workers show that throughput scales
+near-linearly at ~2,000 tps per worker. all runs are flat from start to finish
+— no throughput dip in the first 2 seconds. the earlier observed variation was
+just normal measurement noise, not a systematic pattern.
 
 # Available Workloads (default)
 

@@ -57,8 +57,11 @@ def main():
         data = load_csv(path)
         t = [r["time_s"] for r in data]
         tps = [r["rate_tps"] for r in data]
-        marker = "o" if len(t) == 1 else ""
-        ax.plot(t, tps, marker=marker, label=label)
+        single = len(t) == 1
+        if single:
+            val = tps[0]
+            t, tps = [0, t[0]], [val, val]
+        ax.plot(t, tps, marker="o", markevery=[-1] if single else None, label=label)
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

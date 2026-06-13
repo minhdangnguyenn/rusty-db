@@ -60,11 +60,19 @@ def main():
         p90 = [r["p90_ms"] for r in data]
         p99 = [r["p99_ms"] for r in data]
         maxv = [r["max"] for r in data]
-        marker = "o" if len(t) == 1 else ""
-        ax.plot(t, p50, marker=marker, label=f"{label} p50")
-        ax.plot(t, p90, marker=marker, linestyle="-.", label=f"{label} p90")
-        ax.plot(t, p99, marker=marker, linestyle="--", label=f"{label} p99")
-        ax.plot(t, maxv, marker=marker, linestyle=":", label=f"{label} max")
+        single = len(t) == 1
+        if single:
+            t = [0, t[0]]
+            p50 = [p50[0], p50[0]]
+            p90 = [p90[0], p90[0]]
+            p99 = [p99[0], p99[0]]
+            maxv = [maxv[0], maxv[0]]
+        kwargs = {"markevery": [-1]} if single else {}
+        opts = dict(marker="o", **kwargs)
+        ax.plot(t, p50, label=f"{label} p50", **opts)
+        ax.plot(t, p90, linestyle="-.", label=f"{label} p90", **opts)
+        ax.plot(t, p99, linestyle="--", label=f"{label} p99", **opts)
+        ax.plot(t, maxv, linestyle=":", label=f"{label} max", **opts)
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Latency [ms]")
