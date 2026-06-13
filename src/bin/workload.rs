@@ -23,9 +23,13 @@ use rand::distr::Distribution as _;
 use rand::rngs::StdRng;
 //use rand::seq::IndexedRandom as _;
 
-use rand_distr::num_traits::AsPrimitive;
+//use rand_distr::num_traits::AsPrimitive;
 use toydb::error::Result;
-use toydb::sql::types::{Row, Rows, Value};
+use toydb::sql::types::{
+    //Row,
+    //Rows,
+    Value,
+};
 use toydb::{
     Client,
     StatementResult,
