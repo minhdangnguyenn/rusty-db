@@ -1,6 +1,3 @@
-// cache is singleton, it workds between different thread -> need mutex
-// cache the row for read workload
-// cache all key-value per row
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::LazyLock;
