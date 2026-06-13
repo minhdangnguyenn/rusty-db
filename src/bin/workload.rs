@@ -24,14 +24,13 @@ use rand::rngs::StdRng;
 //use rand::seq::IndexedRandom as _;
 
 use toydb::error::Result;
-use toydb::sql::types::{
-    // Row,
-    Rows,
-};
+use toydb::sql::types::{Row, Rows, Value};
 use toydb::{
     Client,
-    errinput,
-    // StatementResult
+    StatementResult,
+    cache,
+    errdata,
+    errinput, // StatementResult
 };
 
 fn main() {
@@ -98,15 +97,15 @@ struct Runner {
 }
 
 impl Runner {
-    /// Runs the specified workload.
+    /// runs the specified workload.
     fn run<W: Workload>(self, workload: W) -> Result<()> {
         let mut rng = StdRng::seed_from_u64(self.seed);
         let mut client = Client::connect(&self.hosts[0])?;
 
-        // Ensure output directory exists.
+        // ensure output directory exists.
         create_dir_all(&self.out_dir)?;
 
-        // Create a run id to avoid overwriting files.
+        // create a run id to avoid overwriting files.
         let run_id = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_else(|_| Duration::from_secs(0))
@@ -115,7 +114,7 @@ impl Runner {
         let csv_path = self.out_dir.join(format!("{}-{}.csv", self.experiment, run_id));
         let summary_path = self.out_dir.join(format!("{}-{}-summary.csv", self.experiment, run_id));
 
-        // Set up a histogram recording txn latencies as nanoseconds. The
+        // set up a histogram recording txn latencies as nanoseconds. The
         // buckets range from 0.001s to 10s.
         let mut hist = Histogram::<u32>::new_with_bounds(1_000, 10_000_000_000, 3)?.into_sync();
 
@@ -329,6 +328,10 @@ struct Read {
     /// zipf skew parameter (only used with --dist zipf)
     #[arg(long, default_value = "1.0")]
     zipf_skew: f64,
+
+    /// enable cache or not
+    #[arg(long)]
+    cache: bool,
 }
 
 impl std::fmt::Display for Read {
@@ -345,6 +348,9 @@ impl Workload for Read {
     type Item = HashSet<u64>;
 
     fn prepare(&self, client: &mut Client, rng: &mut StdRng) -> Result<()> {
+        if self.cache {
+            cache::enable();
+        }
         client.execute("BEGIN")?;
         client.execute(r#"DROP TABLE IF EXISTS "read""#)?;
         client.execute(r#"CREATE TABLE "read" (id INT PRIMARY KEY, value STRING NOT NULL)"#)?;
@@ -374,14 +380,34 @@ impl Workload for Read {
         Ok(ReadGenerator { batch: self.batch, dist, rng })
     }
 
+    // start running the workload
     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
         let batch_size = item.len();
-        let query = format!(
-            r#"SELECT * FROM "read" WHERE {}"#,
-            item.iter().map(|id| format!("id = {}", id)).join(" OR ")
-        );
-        let rows: Rows = client.execute(&query)?.try_into()?;
-        assert_eq!(rows.count(), batch_size, "Unexpected row count");
+
+        // Filter out cached IDs — query DB only for uncached
+        let uncached = cache::filter_uncached(item);
+        let cached_count = batch_size - uncached.len();
+
+        if !uncached.is_empty() {
+            let query = format!(
+                r#"SELECT id, value FROM "read" WHERE {}"#,
+                uncached.iter().map(|id| format!("id = {id}")).join(" OR ")
+            );
+            let result = client.execute(&query)?;
+            let StatementResult::Select { rows, .. } = result else {
+                return errdata!("expected select result, found {result:?}");
+            };
+            for row in &rows {
+                // row[0] = id (Integer), row[1] = value (String)
+                if let (Value::Integer(id), Value::String(value)) = (&row[0], &row[1]) {
+                    cache::insert(*id as u64, value.clone());
+                }
+            }
+            assert_eq!(rows.len() + cached_count, batch_size, "Unexpected row count");
+        } else {
+            // All IDs were cached — nothing to query
+            assert_eq!(cached_count, batch_size, "All IDs should be cached");
+        }
         Ok(())
     }
 
