@@ -23,6 +23,7 @@ use rand::distr::Distribution as _;
 use rand::rngs::StdRng;
 //use rand::seq::IndexedRandom as _;
 
+use rand_distr::num_traits::AsPrimitive;
 use toydb::error::Result;
 use toydb::sql::types::{Row, Rows, Value};
 use toydb::{
@@ -94,6 +95,9 @@ struct Runner {
     /// Experiment name/tag used in output filenames (e.g., exp1-baseline-small).
     #[arg(long)]
     experiment: String,
+
+    #[arg(long)]
+    id: Option<u64>,
 }
 
 impl Runner {
@@ -106,13 +110,17 @@ impl Runner {
         create_dir_all(&self.out_dir)?;
 
         // create a run id to avoid overwriting files.
-        let run_id = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_| Duration::from_secs(0))
-            .as_millis();
+        let id = if let Some(id) = self.id {
+            id
+        } else {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_else(|_| Duration::from_secs(0))
+                .as_millis() as u64
+        };
 
-        let csv_path = self.out_dir.join(format!("{}-{}.csv", self.experiment, run_id));
-        let summary_path = self.out_dir.join(format!("{}-{}-summary.csv", self.experiment, run_id));
+        let csv_path = self.out_dir.join(format!("{}-{}.csv", self.experiment, id));
+        let summary_path = self.out_dir.join(format!("{}-{}-summary.csv", self.experiment, id));
 
         // set up a histogram recording txn latencies as nanoseconds. The
         // buckets range from 0.001s to 10s.
@@ -255,7 +263,7 @@ impl Runner {
             csv_summary,
             "\"{}\",{},{:?},\"{}\",{},{},{},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
             self.experiment,
-            run_id,
+            id,
             workload.to_string(),
             hosts,
             self.concurrency,
