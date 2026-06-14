@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::sync::Mutex;
@@ -8,18 +9,16 @@ static ENABLED: AtomicBool = AtomicBool::new(false);
 static CACHE: LazyLock<Mutex<Cache>> = LazyLock::new(|| Mutex::new(Cache::new()));
 
 const CACHE_SIZE: usize = 5000;
-struct Entry {
-    key: u64,
-    value: String,
-}
 
 struct Cache {
-    entries: [Option<Entry>; CACHE_SIZE],
+    entries: HashMap<u64, String>,
+    access_history: Vec<u64>,
+    cursor: usize,
 }
 
 impl Cache {
     fn new() -> Cache {
-        Cache { entries: std::array::from_fn(|_| None) }
+        Cache { access_history: Vec::new(), entries: HashMap::new(), cursor: 0 }
     }
 }
 
@@ -31,55 +30,46 @@ pub fn is_enabled() -> bool {
     ENABLED.load(Relaxed)
 }
 
-pub fn filter_uncached(ids: &HashSet<u64>) -> Vec<u64> {
+pub fn filter_uncached(keys: &HashSet<u64>) -> Vec<u64> {
     if !is_enabled() {
-        return ids.iter().copied().collect();
+        return keys.iter().copied().collect();
     }
     let mut cache = CACHE.lock().unwrap();
     let mut uncached = Vec::new();
-    for &id in ids {
-        let mut found = None;
-        for pos in 0..CACHE_SIZE {
-            if let Some(ref entry) = cache.entries[pos]
-                && entry.key == id
-            {
-                found = Some(pos);
-                break;
-            }
-        }
-        if let Some(pos) = found {
-            move_to_front(&mut cache, pos);
+
+    for key in keys.iter() {
+        if cache.entries.contains_key(key) {
+            cache.access_history.retain(|k| k != key);
+            cache.access_history.push(*key);
         } else {
-            uncached.push(id);
+            uncached.push(*key);
         }
     }
     uncached
 }
 
-pub fn insert(id: u64, value: String) {
+pub fn insert(key: u64, value: String) {
     if !is_enabled() {
         return;
     }
     let mut cache = CACHE.lock().unwrap();
-    for pos in 0..CACHE_SIZE {
-        if let Some(ref entry) = cache.entries[pos]
-            && entry.key == id
-        {
-            cache.entries[pos].as_mut().unwrap().value = value;
-            move_to_front(&mut cache, pos);
-            return;
+    cache.entries.insert(key, value);
+    cache.access_history.push(key);
+
+    // when need evict
+    if cache.entries.len() > CACHE_SIZE {
+        loop {
+            if cache.cursor >= cache.access_history.len() {
+                cache.cursor = 0;
+            }
+
+            let candidate = cache.access_history[cache.cursor];
+            cache.cursor += 1;
+
+            if cache.entries.contains_key(&candidate) {
+                cache.entries.remove(&candidate);
+                break;
+            }
         }
     }
-    for i in (0..CACHE_SIZE - 1).rev() {
-        cache.entries[i + 1] = cache.entries[i].take();
-    }
-    cache.entries[0] = Some(Entry { key: id, value });
-}
-
-fn move_to_front(cache: &mut Cache, pos: usize) {
-    let entry = cache.entries[pos].take();
-    for i in (0..pos).rev() {
-        cache.entries[i + 1] = cache.entries[i].take();
-    }
-    cache.entries[0] = entry;
 }
