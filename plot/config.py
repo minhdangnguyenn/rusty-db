@@ -13,4 +13,3 @@ grid_style = {"linestyle": "--", "alpha": 0.3}
 
 figsize_single = (6, 4)
 figsize_overlay = (8, 4)
-# test
