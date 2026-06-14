@@ -1,8 +1,16 @@
 import argparse
 import csv
 import os
+import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+
+sys.path.insert(0, os.path.dirname(__file__))
+from config import (  # noqa: E402  # pyright: ignore[reportAttributeAccessIssue]
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
+    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+)
 
 
 def load_csv(path):
@@ -52,7 +60,7 @@ def main():
     if len(labels) != len(args.files):
         parser.error("number of --labels must match number of files")
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=figsize_single)
     for path, label in zip(args.files, labels):
         data = load_csv(path)
         t = [r["time_s"] for r in data]
@@ -66,11 +74,10 @@ def main():
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
     ax.set_title("Throughput over time")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
-    ax.grid(True, linestyle="--", alpha=0.3)
+    ax.legend(**legend_pos)
+    ax.grid(True, **grid_style)
     plt.tight_layout()
     plt.savefig(output, dpi=300, bbox_inches="tight")
-    plt.show()
 
 
 if __name__ == "__main__":

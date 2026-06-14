@@ -1,8 +1,27 @@
 import argparse
 import csv
 import os
+import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+
+sys.path.insert(0, os.path.dirname(__file__))
+from config import (  # noqa: E402
+    figsize_single,
+    grid_style,
+    legend_pos,
+    max_color,
+    p50_color,
+    p90_color,
+    p99_color,
+)
+
+LATENCY_METRICS = [
+    ("p50_ms", "-", p50_color),
+    ("p90_ms", "-.", p90_color),
+    ("p99_ms", "--", p99_color),
+    ("max", ":", max_color),
+]
 
 
 def load_csv(path):
@@ -52,36 +71,35 @@ def main():
     if len(labels) != len(args.files):
         parser.error("number of --labels must match number of files")
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=figsize_single)
     for path, label in zip(args.files, labels):
         data = load_csv(path)
         t = [r["time_s"] for r in data]
-        p50 = [r["p50_ms"] for r in data]
-        p90 = [r["p90_ms"] for r in data]
-        p99 = [r["p99_ms"] for r in data]
-        maxv = [r["max"] for r in data]
+        vals = {m: [r[m] for r in data] for m, _, _ in LATENCY_METRICS}
         single = len(t) == 1
         if single:
             t = [0, t[0]]
-            p50 = [p50[0], p50[0]]
-            p90 = [p90[0], p90[0]]
-            p99 = [p99[0], p99[0]]
-            maxv = [maxv[0], maxv[0]]
+            for m in vals:
+                vals[m] = [vals[m][0], vals[m][0]]
         kwargs = {"markevery": [-1]} if single else {}
-        opts = dict(marker="o", **kwargs)
-        ax.plot(t, p50, label=f"{label} p50", **opts)
-        ax.plot(t, p90, linestyle="-.", label=f"{label} p90", **opts)
-        ax.plot(t, p99, linestyle="--", label=f"{label} p99", **opts)
-        ax.plot(t, maxv, linestyle=":", label=f"{label} max", **opts)
+        for metric, ls, c in LATENCY_METRICS:
+            ax.plot(
+                t,
+                vals[metric],
+                linestyle=ls,
+                color=c,
+                marker="o",
+                label=f"{label} {metric[:3]}",
+                **kwargs,
+            )
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Latency [ms]")
     ax.set_title("Latency over time")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
-    ax.grid(True, linestyle="--", alpha=0.3)
+    ax.legend(**legend_pos)
+    ax.grid(True, **grid_style)
     plt.tight_layout()
     plt.savefig(output, dpi=300, bbox_inches="tight")
-    plt.show()
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@
 
 # 1. Local Secrets & Keys (Your custom GCP key folder)
 /terraform/keys
-
+__pycache__
 *.json
 
 # 2. Local working directory (Contains downloaded plugins and binaries)

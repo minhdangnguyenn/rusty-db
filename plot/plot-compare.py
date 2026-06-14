@@ -1,15 +1,20 @@
 import argparse
 import csv
 import os
+import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 import numpy as np  # pyright: ignore[reportMissingImports]
 
-from plot.color import (  # pyright: ignore[reportMissingImports]
-    max_color,
-    p50_color,
-    p90_color,
-    p99_color,
+sys.path.insert(0, os.path.dirname(__file__))
+from config import (  # noqa: E402
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
+    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+    max_color,  # pyright: ignore[reportAttributeAccessIssue]
+    p50_color,  # pyright: ignore[reportAttributeAccessIssue]
+    p90_color,  # pyright: ignore[reportAttributeAccessIssue]
+    p99_color,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 
@@ -50,7 +55,7 @@ def main():
     x = np.arange(len(labels))
 
     # Throughput chart
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=figsize_single)
     colors = plt.cm.tab10(np.linspace(0, 1, len(labels)))
     bars = ax.bar(x, throughputs, 0.5, color=colors)
     ax.set_xticks(x)
@@ -63,15 +68,14 @@ def main():
 
     ax.bar_label(bars, labels=[fmt(v) for v in throughputs], padding=3)
     ax.margins(y=0.15)
-    ax.grid(True, linestyle="--", alpha=0.3, axis="y")
+    ax.grid(True, axis="y", **grid_style)
     plt.tight_layout()
     throughput_out = args.output or "charts/comparison-throughput.png"
     plt.savefig(throughput_out, dpi=300, bbox_inches="tight")
-    plt.show()
     print(f"saved to {throughput_out}")
 
     # Latency chart
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=figsize_single)
     bar_width = 0.2
     offsets = np.arange(len(labels))
     ax.bar(offsets - 1.5 * bar_width, p50, bar_width, label="p50", color=p50_color)
@@ -82,12 +86,11 @@ def main():
     ax.set_xticklabels(labels)
     ax.set_ylabel("Latency [ms]")
     ax.set_title("Latency comparison")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
-    ax.grid(True, linestyle="--", alpha=0.3, axis="y")
+    ax.legend(**legend_pos)
+    ax.grid(True, axis="y", **grid_style)
     plt.tight_layout()
     latency_out = "charts/comparison-latency.png"
     plt.savefig(latency_out, dpi=300, bbox_inches="tight")
-    plt.show()
     print(f"saved to {latency_out}")
 
 
