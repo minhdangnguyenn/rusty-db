@@ -1,9 +1,7 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
 use std::sync::atomic::Ordering::Relaxed;
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
@@ -17,13 +15,11 @@ struct Entry {
 
 struct Cache {
     entries: [Option<Entry>; CACHE_SIZE],
-    index: HashMap<u64, usize>,
-    cursor: usize,
 }
 
 impl Cache {
     fn new() -> Cache {
-        Cache { entries: std::array::from_fn(|_| None), index: HashMap::new(), cursor: 0 }
+        Cache { entries: std::array::from_fn(|_| None) }
     }
 }
 
@@ -32,16 +28,32 @@ pub fn enable() {
 }
 
 pub fn is_enabled() -> bool {
-    return ENABLED.load(Ordering::Relaxed);
+    ENABLED.load(Relaxed)
 }
 
-//  filter_uncached(item) -> [ids_missing_from_cache]
 pub fn filter_uncached(ids: &HashSet<u64>) -> Vec<u64> {
     if !is_enabled() {
         return ids.iter().copied().collect();
     }
-    let cache = CACHE.lock().unwrap();
-    ids.iter().filter(|id| !cache.index.contains_key(id)).copied().collect()
+    let mut cache = CACHE.lock().unwrap();
+    let mut uncached = Vec::new();
+    for &id in ids {
+        let mut found = None;
+        for pos in 0..CACHE_SIZE {
+            if let Some(ref entry) = cache.entries[pos]
+                && entry.key == id
+            {
+                found = Some(pos);
+                break;
+            }
+        }
+        if let Some(pos) = found {
+            move_to_front(&mut cache, pos);
+        } else {
+            uncached.push(id);
+        }
+    }
+    uncached
 }
 
 pub fn insert(id: u64, value: String) {
@@ -49,19 +61,25 @@ pub fn insert(id: u64, value: String) {
         return;
     }
     let mut cache = CACHE.lock().unwrap();
-    if let Some(&pos) = cache.index.get(&id) {
-        // already cached, then update value in-place
-        if let Some(entry) = &mut cache.entries[pos] {
-            entry.value = value;
+    for pos in 0..CACHE_SIZE {
+        if let Some(ref entry) = cache.entries[pos]
+            && entry.key == id
+        {
+            cache.entries[pos].as_mut().unwrap().value = value;
+            move_to_front(&mut cache, pos);
+            return;
         }
-    } else {
-        // evict slot if occupied
-        let pos = cache.cursor;
-        if let Some(old) = cache.entries[pos].take() {
-            cache.index.remove(&old.key);
-        }
-        cache.entries[pos] = Some(Entry { key: id, value });
-        cache.index.insert(id, pos);
-        cache.cursor = (pos + 1) % CACHE_SIZE;
     }
+    for i in (0..CACHE_SIZE - 1).rev() {
+        cache.entries[i + 1] = cache.entries[i].take();
+    }
+    cache.entries[0] = Some(Entry { key: id, value });
+}
+
+fn move_to_front(cache: &mut Cache, pos: usize) {
+    let entry = cache.entries[pos].take();
+    for i in (0..pos).rev() {
+        cache.entries[i + 1] = cache.entries[i].take();
+    }
+    cache.entries[0] = entry;
 }
