@@ -2,8 +2,15 @@ import argparse
 import csv
 import os
 
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+import numpy as np  # pyright: ignore[reportMissingImports]
+
+from plot.color import (  # pyright: ignore[reportMissingImports]
+    max_color,
+    p50_color,
+    p90_color,
+    p99_color,
+)
 
 
 def load_summary(path):
@@ -50,8 +57,10 @@ def main():
     ax.set_xticklabels(labels)
     ax.set_ylabel("Throughput [txns/s]")
     ax.set_title("Throughput comparison")
+
     def fmt(v):
-        return f"{v/1e3:.0f}K" if v >= 1e3 else f"{v:.0f}"
+        return f"{v / 1e3:.0f}K" if v >= 1e3 else f"{v:.0f}"
+
     ax.bar_label(bars, labels=[fmt(v) for v in throughputs], padding=3)
     ax.margins(y=0.15)
     ax.grid(True, linestyle="--", alpha=0.3, axis="y")
@@ -65,10 +74,10 @@ def main():
     fig, ax = plt.subplots(figsize=(6, 4))
     bar_width = 0.2
     offsets = np.arange(len(labels))
-    ax.bar(offsets - 1.5 * bar_width, p50, bar_width, label="p50", color="#4CAF50")
-    ax.bar(offsets - 0.5 * bar_width, p90, bar_width, label="p90", color="#FF9800")
-    ax.bar(offsets + 0.5 * bar_width, p99, bar_width, label="p99", color="#F44336")
-    ax.bar(offsets + 1.5 * bar_width, maxv, bar_width, label="max", color="#9C27B0")
+    ax.bar(offsets - 1.5 * bar_width, p50, bar_width, label="p50", color=p50_color)
+    ax.bar(offsets - 0.5 * bar_width, p90, bar_width, label="p90", color=p90_color)
+    ax.bar(offsets + 0.5 * bar_width, p99, bar_width, label="p99", color=p99_color)
+    ax.bar(offsets + 1.5 * bar_width, maxv, bar_width, label="max", color=max_color)
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.set_ylabel("Latency [ms]")
