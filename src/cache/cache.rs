@@ -22,7 +22,7 @@ impl Cache {
     }
 }
 
-pub fn enable() {
+pub fn enable() -> () {
     ENABLED.store(true, Relaxed);
 }
 
@@ -48,7 +48,7 @@ pub fn filter_uncached(keys: &HashSet<u64>) -> Vec<u64> {
     uncached
 }
 
-pub fn insert(key: u64, value: String) {
+pub fn insert(key: u64, value: String) -> () {
     if !is_enabled() {
         return;
     }
