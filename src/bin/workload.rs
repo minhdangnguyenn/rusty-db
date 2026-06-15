@@ -338,7 +338,7 @@ struct Read {
     dist: String,
 
     /// zipf skew parameter (only used with --dist zipf)
-    #[arg(long, default_value = "1.0")]
+    #[arg(long, default_value = "1.0")] // 1.0: highly skewd
     zipf_skew: f64,
 
     /// enable cache or not
