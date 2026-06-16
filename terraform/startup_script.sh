@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export HOME=/root
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
