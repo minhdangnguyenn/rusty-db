@@ -396,14 +396,14 @@ impl Workload for Read {
     fn execute(client: &mut Client, item: &Self::Item) -> Result<()> {
         let batch_size = item.len();
 
-        // Filter out cached IDs — query DB only for uncached
-        let uncached = cache::filter_uncached(item);
-        let cached_count = batch_size - uncached.len();
+        // filter out cached IDs — query DB only for uncached
+        let uncached_ids = cache::filter_uncached(item);
+        let cached_count = batch_size - uncached_ids.len();
 
-        if !uncached.is_empty() {
+        if !uncached_ids.is_empty() {
             let query = format!(
                 r#"SELECT id, value FROM "read" WHERE {}"#,
-                uncached.iter().map(|id| format!("id = {id}")).join(" OR ")
+                uncached_ids.iter().map(|id| format!("id = {id}")).join(" OR ")
             );
             let result = client.execute(&query)?;
             let StatementResult::Select { rows, .. } = result else {
