@@ -72,7 +72,7 @@ def main():
         ax.plot(t, tps, marker="o", markevery=[-1] if single else None, label=label)
 
     ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Throughput [txns]")
+    ax.set_ylabel("Throughput [txns/s]")
     ax.set_title("Throughput over time")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
