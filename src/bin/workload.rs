@@ -25,18 +25,8 @@ use rand::rngs::StdRng;
 
 //use rand_distr::num_traits::AsPrimitive;
 use toydb::error::Result;
-use toydb::sql::types::{
-    //Row,
-    //Rows,
-    Value,
-};
-use toydb::{
-    Client,
-    StatementResult,
-    cache,
-    errdata,
-    errinput, // StatementResult
-};
+use toydb::sql::types::Value;
+use toydb::{Client, StatementResult, cache, errdata, errinput};
 
 fn main() {
     let Command { runner, subcommand } = Command::parse();
