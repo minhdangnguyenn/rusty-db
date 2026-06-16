@@ -74,30 +74,17 @@ resource "google_compute_firewall" "raft" {
   target_tags   = ["${var.prefix}-node"]
 }
 
-# Startup script: install Rust and build toyDB on first boot
+# static internal IPs for each node
+resource "google_compute_address" "internal" {
+  count        = local.node_count
+  name         = "${var.prefix}-node-${count.index + 1}-internal"
+  subnetwork   = google_compute_subnetwork.main.self_link
+  address_type = "INTERNAL"
+  region       = var.region
+}
+
 locals {
-  startup_script = <<-SCRIPT
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq
-    apt-get install -y -qq build-essential pkg-config libssl-dev
-
-    if ! command -v rustc &>/dev/null; then
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-    fi
-
-    source "$${HOME}/.cargo/env"
-
-    if [ ! -d /opt/toydb ]; then
-      git clone https://github.com/erikgrinaker/toydb /opt/toydb
-    fi
-
-    cd /opt/toydb
-    git pull --ff-only origin main || true
-    cargo build --release --bin toydb
-  SCRIPT
+  startup_script = file("${path.module}/startup_script.sh")
 }
 
 # 5 VM instances
@@ -130,6 +117,12 @@ resource "google_compute_instance" "db_nodes" {
 
   metadata = {
     startup-script = local.startup_script
+    node_id        = count.index + 1
+    my_ip          = google_compute_address.internal[count.index].address
+    peer_ips = jsonencode({
+      for i in range(local.node_count) :
+      format("%d", i + 1) => "${google_compute_address.internal[i].address}:${local.raft_base + i + 1}"
+    })
   }
 
   depends_on = [

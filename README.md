@@ -1,5 +1,9 @@
 # <a><img src="./docs/architecture/images/toydb.svg" height="40" valign="top" /></a> toyDB
 
+## Prerequisite
+- Rust
+- Python
+- GCP CLI
 ## Usage
 
 With a [Rust compiler](https://www.rust-lang.org/tools/install) installed, a local five-node
