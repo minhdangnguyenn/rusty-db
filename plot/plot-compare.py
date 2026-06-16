@@ -96,3 +96,15 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#
+# Examples
+# --------
+# Compare two experiments (requires summary CSV files):
+#   python3 plot/plot-compare.py csv/a-summary.csv csv/b-summary.csv --labels "A" "B"
+#
+# Compare three or more:
+#   python3 plot/plot-compare.py csv/a-summary.csv csv/b-summary.csv csv/c-summary.csv --labels A B C
+#
+# Custom output path (only affects throughput chart):
+#   python3 plot/plot-compare.py csv/a-summary.csv csv/b-summary.csv -o charts/my-compare.png

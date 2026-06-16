@@ -170,3 +170,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#
+# Examples
+# --------
+# Overlay two experiments with dual y-axes:
+#   python3 plot/plot-overlay.py csv/no-cache.csv csv/cache.csv --labels "no-cache" "cache"
+#
+# Custom output path:
+#   python3 plot/plot-overlay.py csv/a.csv csv/b.csv --labels A B -o charts/my-overlay.png

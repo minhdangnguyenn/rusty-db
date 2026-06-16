@@ -104,3 +104,18 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#
+# Examples
+# --------
+# Plot a single data CSV with auto-derived label:
+#   python3 plot/plot-latency.py csv/no-cache-read-s-uniform-3.csv
+#
+# Plot with custom label:
+#   python3 plot/plot-latency.py csv/no-cache-read-s-uniform-3.csv --labels "my-label"
+#
+# Compare multiple runs:
+#   python3 plot/plot-latency.py csv/a.csv csv/b.csv --labels "A" "B"
+#
+# Custom output path:
+#   python3 plot/plot-latency.py csv/data.csv -o charts/my-chart.png

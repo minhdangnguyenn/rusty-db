@@ -34,3 +34,25 @@ case "$1" in
     ;;
 esac
 echo "charts saved to charts/"
+
+#
+# usage
+# --------
+# 1. Single experiment, auto-label:
+#    bash plot/plot.sh csv/no-cache-read-s-uniform-3.csv
+#
+# 2. Single experiment with custom label:
+#    bash plot/plot.sh csv/no-cache-read-s-uniform-3.csv "no-cache"
+#
+# 3. Compare multiple experiments (bar charts, requires summary CSVs):
+#    bash plot/plot.sh csv/a-summary.csv csv/b-summary.csv --labels "A" "B"
+#    # or shorthand for 3+ files:
+#    bash plot/plot.sh csv/a-summary.csv csv/b-summary.csv csv/c-summary.csv --labels A B C
+#
+# 4. Overlay two experiments on dual y-axes:
+#    bash plot/plot.sh --overlay csv/no-cache.csv csv/cache.csv --labels "no-cache" "cache"
+#
+# 5. Compare mode explicitly (same as #3):
+#    bash plot/plot.sh --compare csv/a-summary.csv csv/b-summary.csv --labels "A" "B"
+#
+# Output files are saved under charts/ directory.

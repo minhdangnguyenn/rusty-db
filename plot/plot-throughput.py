@@ -72,7 +72,7 @@ def main():
         ax.plot(t, tps, marker="o", markevery=[-1] if single else None, label=label)
 
     ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Throughput [txns/s]")
+    ax.set_ylabel("Throughput [txns]")
     ax.set_title("Throughput over time")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
@@ -82,3 +82,18 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#
+# Examples
+# --------
+# Plot a single data CSV with auto-derived label:
+#   python3 plot/plot-throughput.py csv/no-cache-read-s-uniform-3.csv
+#
+# Plot with custom label:
+#   python3 plot/plot-throughput.py csv/no-cache-read-s-uniform-3.csv --labels "my-label"
+#
+# Compare multiple runs:
+#   python3 plot/plot-throughput.py csv/a.csv csv/b.csv --labels "A" "B"
+#
+# Custom output path:
+#   python3 plot/plot-throughput.py csv/data.csv -o charts/my-chart.png
