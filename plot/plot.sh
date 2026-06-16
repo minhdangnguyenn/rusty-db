@@ -26,7 +26,7 @@ case "$1" in
       $PYTHON "$SCRIPT_DIR/plot-compare.py" "$@"
     elif [ $# -eq 2 ]; then
       $PYTHON "$SCRIPT_DIR/plot-throughput.py" "$1" --labels "$2"
-      $PYTHON "$SCRIPT_DIR/plot-latency.py" "$1" --labels "$2"
+      $PYTHON "$SCRIPT_DIR/plot-latency.py" "$1"
     else
       $PYTHON "$SCRIPT_DIR/plot-throughput.py" "$@"
       $PYTHON "$SCRIPT_DIR/plot-latency.py" "$@"

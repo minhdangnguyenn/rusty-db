@@ -40,13 +40,19 @@ def main():
     data = load_csv(args.csv)
     t = [r["time_s"] for r in data]
     tps = [r["throughput"] for r in data]
+
     single = len(t) == 1
     if single:
         val = tps[0]
         t, tps = [0, t[0]], [val, val]
 
     fig, ax = plt.subplots(figsize=figsize_single)
+    x_max = max(t)
+    # y_max = max(tps)
     ax.plot(t, tps, marker="o", markevery=[-1] if single else None, label=label)
+
+    ax.set_xticks(range(0, int(max(t)) + 2))
+    ax.set_xlim([1, x_max])
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
