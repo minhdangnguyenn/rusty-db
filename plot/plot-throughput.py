@@ -64,7 +64,7 @@ def main():
     for path, label in zip(args.files, labels):
         data = load_csv(path)
         t = [r["time_s"] for r in data]
-        tps = [r["rate_tps"] for r in data]
+        tps = [r["throughput"] for r in data]
         single = len(t) == 1
         if single:
             val = tps[0]

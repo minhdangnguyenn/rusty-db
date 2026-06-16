@@ -46,7 +46,7 @@ def main():
 
     summaries = [load_summary(f) for f in args.files]
 
-    throughputs = [float(s["rate_tps"]) for s in summaries]
+    throughputs = [float(s["throughput"]) for s in summaries]
     p50 = [float(s["p50_ms"]) for s in summaries]
     p90 = [float(s["p90_ms"]) for s in summaries]
     p99 = [float(s["p99_ms"]) for s in summaries]

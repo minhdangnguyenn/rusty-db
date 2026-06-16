@@ -92,7 +92,7 @@ def main():
     ax1.set_ylabel(f"Throughput [txns/s]  ({labels[0]})", color=exp1_color)
     ax1.plot(
         t_left,
-        vl["rate_tps"],
+        vl["throughput"],
         marker="o",
         markevery=me_left,
         color=exp1_color,
@@ -104,7 +104,7 @@ def main():
     ax2.set_ylabel(f"Throughput [txns/s]  ({labels[1]})", color=exp2_color)
     ax2.plot(
         t_right,
-        vr["rate_tps"],
+        vr["throughput"],
         marker="o",
         markevery=me_right,
         color=exp2_color,

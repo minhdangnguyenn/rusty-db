@@ -134,7 +134,7 @@ impl Runner {
         let mut csv = {
             let f = File::create(&csv_path)?;
             let mut w = BufWriter::new(f);
-            writeln!(w, "time_s,progress,txns,rate_tps,p50_ms,p90_ms,p99_ms,max")?;
+            writeln!(w, "time_s,progress,txns,throughput,p50_ms,p90_ms,p99_ms,max")?;
             w
         };
 
@@ -144,7 +144,7 @@ impl Runner {
             let mut w = BufWriter::new(f);
             writeln!(
                 w,
-                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,rate_tps,p50_ms,p90_ms,p99_ms,max"
+                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max"
             )?;
             w
         };
@@ -217,7 +217,7 @@ impl Runner {
 
                 let progress = hist.len() as f64 / self.count as f64 * 100.0;
                 let txns = hist.len();
-                let rate_tps = hist.len() as f64 / duration_s;
+                let throughput = hist.len() as f64 / duration_s;
 
                 let p50_ms =
                     Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
@@ -232,7 +232,7 @@ impl Runner {
                     format!("{:.1}s", duration_s),
                     progress,
                     txns,
-                    rate_tps,
+                    throughput,
                     p50_ms,
                     p90_ms,
                     p99_ms,
@@ -242,7 +242,7 @@ impl Runner {
                 writeln!(
                     csv,
                     "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
-                    duration_s, progress, txns, rate_tps, p50_ms, p90_ms, p99_ms, max,
+                    duration_s, progress, txns, throughput, p50_ms, p90_ms, p99_ms, max,
                 )?;
                 csv.flush()?; // keep data even if benchmark aborts
             }
@@ -254,7 +254,7 @@ impl Runner {
         hist.refresh_timeout(Duration::from_secs(0)); // refresh final snapshot
 
         let txns = hist.len();
-        let rate_tps = txns as f64 / total_time_s;
+        let throughput = txns as f64 / total_time_s;
 
         let p50_ms = Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
         let p90_ms = Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
@@ -275,7 +275,7 @@ impl Runner {
             self.seed,
             total_time_s,
             txns,
-            rate_tps,
+            throughput,
             p50_ms,
             p90_ms,
             p99_ms,
