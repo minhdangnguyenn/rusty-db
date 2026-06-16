@@ -60,6 +60,16 @@ def main():
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
+    basename = os.path.splitext(os.path.basename(args.csv))[0]
+    fig.text(
+        0.5,
+        0.01,
+        basename,
+        ha="center",
+        fontsize=8,
+        fontstyle="italic",
+        color="gray",
+    )
 
     output = (
         args.output

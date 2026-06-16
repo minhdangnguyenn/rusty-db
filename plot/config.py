@@ -7,9 +7,10 @@ exp1_color = "#2196F3"
 exp2_color = "#FF5722"
 
 legend_pos = {"loc": "upper left", "bbox_to_anchor": (1.02, 1)}
-legend_pos_overlay = {"loc": "upper left", "bbox_to_anchor": (1.25, 1)}
 
 grid_style = {"linestyle": "--", "alpha": 0.3}
 
-figsize_single = (6, 4)
-figsize_overlay = (8, 4)
+figsize_single = (8, 5)
+
+# figsize_overlay = (8, 4)
+# legend_pos_overlay = {"loc": "upper left", "bbox_to_anchor": (1.25, 1)}

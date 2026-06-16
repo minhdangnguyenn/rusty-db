@@ -67,26 +67,25 @@ The id defaults to `1` if omitted.
 
 ### Plot charts
 
-Two modes: **single** (timeseries) and **compare** (bar chart summary).
-
-**Single chart** — 1 file, optionally with a label:
+Requires `python3` with `matplotlib` and `numpy`. Virtualenv: `plot/.venv/`.
 
 ```bash
+# Single experiment (timeseries)
 bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv
-bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv "no-cache"
+# -> charts/<name>-throughput.png, charts/<name>-latency.png
+
+# Compare throughput (two experiments, overlay)
+bash plot/plot-compare-throughput.sh csv/no-cache.csv csv/cache.csv
+# -> charts/compare-throughput-*.png
+
+# Compare latency (two experiments, grouped bar + difference)
+bash plot/plot-compare-latency.sh csv/no-cache-summary.csv csv/cache-summary.csv
+# -> charts/comparison-latency.png
+
+# Compare both
+bash plot/plot-compare.sh csv/no-cache.csv csv/cache.csv
+# -> both compare charts
 ```
-
-Outputs `charts/<filename>-throughput.png` and `charts/<filename>-latency.png`.
-
-**Compare chart** — 2+ files with `--labels`:
-
-```bash
-bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv csv/cache-read-s-uniform-1.csv --labels no-cache cache
-```
-
-Outputs `charts/comparison-throughput.png` and `charts/comparison-latency.png`.
-
-The script auto-detects which mode: 1–2 args = single (timeseries), 3+ args = comparison (bar charts).
 
 ### Sanitize
 
