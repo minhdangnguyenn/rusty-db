@@ -6,8 +6,19 @@ apt-get update -qq
 apt-get install -y -qq build-essential pkg-config libssl-dev
 
 if ! command -v rustc &>/dev/null; then
+	# install rust on each VM
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+    source "$HOME/.cargo/env"
 fi
+
+if [ ! -d /opt/toydb ]; then
+    git clone https://github.com/minhdangnguyenn/rusty-db /opt/toydb
+fi
+
+cd /opt/toydb
+git pull --ff-only || true
+cargo build --release --bin toydb
+cargo build --release --bin workload
 
 NODE_ID=$(curl -s -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/instance/attributes/node_id)
