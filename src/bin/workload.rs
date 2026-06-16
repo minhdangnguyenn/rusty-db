@@ -412,6 +412,7 @@ impl Workload for Read {
             for row in &rows {
                 // row[0] = id (Integer), row[1] = value (String)
                 if let (Value::Integer(id), Value::String(value)) = (&row[0], &row[1]) {
+                    // add query result into cache
                     cache::insert(*id as u64, value.clone());
                 }
             }
