@@ -3,8 +3,8 @@ set -euo pipefail
 export HOME=/root
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y -qq build-essential pkg-config libssl-dev
+sudo apt-get update -qq
+sudo apt-get install -y -qq build-essential pkg-config libssl-dev
 
 if ! command -v rustc &>/dev/null; then
 	# install rust on each VM
