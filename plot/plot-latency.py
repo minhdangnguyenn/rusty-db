@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (  # noqa: E402
-    figsize_single,
-    grid_style,
-    legend_pos,
-    max_color,
-    p50_color,
-    p90_color,
-    p99_color,
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
+    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+    max_color,  # pyright: ignore[reportAttributeAccessIssue]
+    p50_color,  # pyright: ignore[reportAttributeAccessIssue]
+    p90_color,  # pyright: ignore[reportAttributeAccessIssue]
+    p99_color,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 LATENCY_METRICS = [
