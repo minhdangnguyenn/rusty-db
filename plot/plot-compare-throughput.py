@@ -42,7 +42,7 @@ def main():
     max_t = 0
     labels = []
 
-    for path, c in zip(args.files, colors):
+    for i, (path, c) in enumerate(zip(args.files, colors)):
         data = load_csv(path)
 
         if "time_s" in data[0]:
@@ -53,15 +53,20 @@ def main():
             t = [0, data[-1]["total_time_s"]]
             tps = [v, v]
 
+        mark_step = max(1, len(t) // 10)
+        markers = list(range(0, len(t), mark_step))
+        if markers[-1] != len(t) - 1:
+            markers.append(len(t) - 1)
         max_t = max(max_t, max(t))
 
-        if "experiment" in data[0]:
-            label = data[0]["experiment"]
-        else:
-            label = os.path.splitext(os.path.basename(path))[0]
-        labels.append(label)
+        # if "experiment" in data[0]:
+        #     label = data[0]["experiment"]
+        # else:
+        #     label = os.path.splitext(os.path.basename(path))[0]
+        # labels.append(label)
+        label = ["with cache", "without cache"][i]
 
-        ax.plot(t, tps, marker="o", color=c, label=label)
+        ax.plot(t, tps, marker="o", markevery=markers, color=c, label=label)
 
     n_ticks = 10
     step = max(1, int(max_t / n_ticks))
