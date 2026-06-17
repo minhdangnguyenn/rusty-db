@@ -14,7 +14,7 @@
 ```bash 
 export PATH="$HOME/google-cloud-sdk/bin:$PATH"
 
-# declare all external IPs on the cloud -- get these using ./tf.sh output node_external_ips
+# declare all external IPs on the cloud -- get these ips using ./tf.sh output node_external_ips
 export TOYDB_HOSTS="34.159.196.234:9601,34.40.126.153:9602,35.198.134.65:9603,35.198.133.143:9604,34.179.177.229:9605"
 
 # no-cache
