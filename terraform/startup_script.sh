@@ -18,9 +18,11 @@ fi
 
 cd /opt/toydb
 git pull --ff-only || true
-cargo build --release --bin toydb
-cargo build --release --bin workload
 
+if [ ! -f /opt/toydb/target/release/toydb ]; then
+    cargo build --release --bin toydb
+    cargo build --release --bin workload
+fi
 NODE_ID=$(curl -s -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/instance/attributes/node_id)
 MY_IP=$(curl -s -H "Metadata-Flavor: Google" \
@@ -45,3 +47,22 @@ with open('/opt/toydb/toydb.yaml', 'w') as f:
         if k != nid:
             f.write(f'  \"{k}\": {v}\n')
 "
+
+cat > /etc/systemd/system/toydb.service << 'EOF'
+[Unit]
+Description=toyDB node
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/toydb/target/release/toydb --config /opt/toydb/toydb.yaml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable toydb
+systemctl start toydb

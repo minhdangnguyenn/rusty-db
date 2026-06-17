@@ -104,12 +104,10 @@ resource "google_compute_instance" "db_nodes" {
   }
 
   network_interface {
-    subnetwork = google_compute_subnetwork.main.self_link
-
-    access_config {
-      # Ephemeral public IP
-    }
-  }
+     subnetwork = google_compute_subnetwork.main.self_link
+     network_ip = google_compute_address.internal[count.index].address
+     access_config { }
+   }
 
   service_account {
     scopes = ["cloud-platform"]
