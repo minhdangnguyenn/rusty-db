@@ -109,7 +109,10 @@ impl Runner {
         let mut csv = {
             let f = File::create(&csv_path)?;
             let mut w = BufWriter::new(f);
-            writeln!(w, "time_s,progress,txns,throughput,p50_ms,p90_ms,p99_ms,max")?;
+            writeln!(
+                w,
+                "time_s,progress,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate"
+            )?;
             w
         };
 
@@ -119,7 +122,7 @@ impl Runner {
             let mut w = BufWriter::new(f);
             writeln!(
                 w,
-                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max"
+                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate"
             )?;
             w
         };
@@ -133,6 +136,7 @@ impl Runner {
         println!("Running Workload !");
 
         let bench_start = Instant::now();
+        cache::reset_stats();
 
         // Spawn workers, round robin across hosts.
         std::thread::scope(|s| -> Result<()> {
@@ -179,7 +183,9 @@ impl Runner {
             let ticker = crossbeam::channel::tick(Duration::from_secs(1));
 
             println!();
-            println!("Time   Progress     Txns      Rate       p50       p90       p99      max");
+            println!(
+                "Time   Progress     Txns      Rate       p50       p90       p99      max     hits    misses   hit%"
+            );
 
             while let Err(crossbeam::channel::TryRecvError::Empty) = done_rx.try_recv() {
                 crossbeam::select! {
@@ -202,8 +208,10 @@ impl Runner {
                     Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
                 let max = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
 
+                let (cache_hits, cache_misses, cache_hit_rate) = cache::stats();
+
                 println!(
-                    "{:<8} {:>5.1}%  {:>7}  {:>6.0}/s  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms",
+                    "{:<8} {:>5.1}%  {:>7}  {:>6.0}/s  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>7}  {:>7}  {:>5.1}%",
                     format!("{:.1}s", duration_s),
                     progress,
                     txns,
@@ -212,12 +220,24 @@ impl Runner {
                     p90_ms,
                     p99_ms,
                     max,
+                    cache_hits,
+                    cache_misses,
+                    cache_hit_rate * 100.0,
                 );
-
                 writeln!(
                     csv,
-                    "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
-                    duration_s, progress, txns, throughput, p50_ms, p90_ms, p99_ms, max,
+                    "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6},{},{},{:.6}",
+                    duration_s,
+                    progress,
+                    txns,
+                    throughput,
+                    p50_ms,
+                    p90_ms,
+                    p99_ms,
+                    max,
+                    cache_hits,
+                    cache_misses,
+                    cache_hit_rate,
                 )?;
                 csv.flush()?; // keep data even if benchmark aborts
             }
@@ -238,9 +258,10 @@ impl Runner {
 
         let hosts = self.hosts.join(";");
 
+        let (cache_hits, cache_misses, cache_hit_rate) = cache::stats();
         writeln!(
             csv_summary,
-            "\"{}\",{},{:?},\"{}\",{},{},{},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6}",
+            "\"{}\",{},{:?},\"{}\",{},{},{},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6},{},{},{:.6}",
             self.experiment,
             id,
             workload.to_string(),
@@ -255,6 +276,9 @@ impl Runner {
             p90_ms,
             p99_ms,
             max,
+            cache_hits,
+            cache_misses,
+            cache_hit_rate,
         )?;
         csv_summary.flush()?;
 

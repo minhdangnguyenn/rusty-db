@@ -3,10 +3,13 @@ use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::Relaxed;
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static CACHE: LazyLock<Mutex<Cache>> = LazyLock::new(|| Mutex::new(Cache::new()));
+static HITS: AtomicU64 = AtomicU64::new(0);
+static MISSES: AtomicU64 = AtomicU64::new(0);
 
 const CACHE_SIZE: usize = 5000;
 
@@ -39,13 +42,27 @@ pub fn filter_uncached(keys: &HashSet<u64>) -> Vec<u64> {
 
     for key in keys.iter() {
         if cache.entries.contains_key(key) {
+            HITS.fetch_add(1, Relaxed);
             cache.access_history.retain(|k| k != key);
             cache.access_history.push(*key);
         } else {
+            MISSES.fetch_add(1, Relaxed);
             uncached.push(*key);
         }
     }
     uncached
+}
+
+pub fn stats() -> (u64, u64, f64) {
+    let hits = HITS.load(Relaxed);
+    let misses = MISSES.load(Relaxed);
+    let ratio = if hits + misses > 0 { hits as f64 / (hits + misses) as f64 } else { 0.0 };
+    (hits, misses, ratio)
+}
+
+pub fn reset_stats() {
+    HITS.store(0, Relaxed);
+    MISSES.store(0, Relaxed);
 }
 
 pub fn insert(key: u64, value: String) {

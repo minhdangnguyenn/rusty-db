@@ -9,11 +9,12 @@ if [ -z "$CSV" ]; then
 fi
 if [ -n "$LABEL" ]; then
     $PYTHON "$SCRIPT_DIR/plot-throughput.py" "$CSV" --label "$LABEL"
-    $PYTHON "$SCRIPT_DIR/plot-latency.py" "$CSV"
+    $PYTHON "$SCRIPT_DIR/plot-cache-hit-rate.py" "$CSV" --label "$LABEL"
 else
     $PYTHON "$SCRIPT_DIR/plot-throughput.py" "$CSV"
-    $PYTHON "$SCRIPT_DIR/plot-latency.py" "$CSV"
+    $PYTHON "$SCRIPT_DIR/plot-cache-hit-rate.py" "$CSV"
 fi
+$PYTHON "$SCRIPT_DIR/plot-latency.py" "$CSV"
 # sample usage
 # bash plot/plot-throughput-latency.sh csv/no-cache-read-s-uniform-3.csv
 # bash plot/plot-throughput-latency.sh csv/no-cache-read-s-uniform-3.csv "Small Uniform"
