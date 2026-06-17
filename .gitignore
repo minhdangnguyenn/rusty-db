@@ -35,4 +35,3 @@ override.tf.json
 # 6. CLI configuration file
 .terraformrc
 terraform.rc
-*.csv

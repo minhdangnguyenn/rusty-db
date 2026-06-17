@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max
+"cloud-no-cache-s-zipf",1,"read (rows=1000 size=64 batch=1 distr=zipf)","34.159.196.234:9601;34.40.126.153:9602;35.198.134.65:9603;35.198.133.143:9604;34.179.177.229:9605",16,100000,16791084677885396490,97.584,100000,1024.754,13.828095,20.201471,41.844735,239.992831

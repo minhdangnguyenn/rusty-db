@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max
+"cloud-no-cache-l-uniform",1,"read (rows=10000 size=64 batch=1 distr=uniform)","34.159.196.234:9601;34.40.126.153:9602;35.198.134.65:9603;35.198.133.143:9604;34.179.177.229:9605",16,100000,16791084677885396490,106.871,100000,935.704,15.785983,20.381695,43.941887,254.410751
