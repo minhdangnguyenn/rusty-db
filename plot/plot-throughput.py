@@ -1,5 +1,6 @@
 import argparse
 import csv
+import math
 import os
 import sys
 
@@ -48,17 +49,17 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
     x_max = max(t)
-    mark_step = max(1, len(t) // 10)
+    markers = list(range(0, len(t), max(1, len(t) // 10)))
+    if markers[-1] != len(t) - 1:
+        markers.append(len(t) - 1)
     # y_max = max(tps)
-    ax.plot(t, tps, marker="o", markevery=[-1] if single else mark_step, label=label)
+    ax.plot(t, tps, marker="o", markevery=[-1] if single else markers, label=label)
 
+    end_tick = math.ceil(x_max)
     n_ticks = 10
-    step = max(1, int(x_max / n_ticks))
-    ticks = list(range(0, int(x_max) + 1, step))
-    if ticks[-1] != int(x_max):
-        ticks.append(int(x_max))
-    ax.set_xticks(ticks)
-    ax.set_xlim([1, x_max + 1])
+    step = max(1, end_tick // n_ticks)
+    ax.set_xticks(range(0, end_tick + 1, step))
+    ax.set_xlim([1, end_tick + 1])
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
