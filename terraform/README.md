@@ -53,35 +53,52 @@ machine_type = "e2-small"
 disk_size_gb = 30
 ```
 
-## Post-deploy: starting toyDB
+## Post-deploy
 
-1.  Get the internal IPs:
+The startup script on each VM:
+- Installs Rust, clones the repo, builds `toydb` and `workload`
+- Generates `/opt/toydb/toydb.yaml` with correct internal IPs (static reservation)
+- Installs a `systemd` service so `toydb` auto-starts on boot
 
-    ```bash
-    ./tf.sh output node_internal_ips
-    ```
+**1. Wait for all nodes to report `active`:**
 
-2.  SSH into each node, create `/opt/toydb/toydb.yaml`. Example for node 1 (internal IP `10.0.0.2`):
+```bash
+for i in 1 2 3 4 5; do
+  gcloud compute ssh toydb-node-$i --zone europe-west3-c \
+    --command "systemctl is-active toydb"
+done
+```
 
-    ```yaml
-    id: 1
-    data_dir: /opt/toydb/data
-    listen_sql: 0.0.0.0:9601
-    listen_raft: 0.0.0.0:9701
-    peers:
-        "2": 10.0.0.3:9702
-        "3": 10.0.0.4:9703
-        "4": 10.0.0.5:9704
-        "5": 10.0.0.6:9705
-    ```
+**2. Get the external IPs:**
 
-    Adjust IPs, ports, and node IDs for each node.
+```bash
+gcloud compute instances list --zones=europe-west3-c \
+  --format="table(name,networkInterfaces[0].accessConfigs[0].natIP)"
+```
 
-3.  Start the server (the startup script already built the binary):
+**3. Export `TOYDB_HOSTS`:**
 
-    ```bash
-    cd /opt/toydb && RUST_LOG=info ./target/release/toydb -c toydb.yaml
-    ```
+```bash
+export TOYDB_HOSTS="<ext-ip-1>:9601,<ext-ip-2>:9602,<ext-ip-3>:9603,<ext-ip-4>:9604,<ext-ip-5>:9605"
+```
+
+**4. Run workloads (see `../scripts/cloud/`):**
+
+```bash
+# Quick connectivity test
+cargo run --release --bin workload -- -H "$TOYDB_HOSTS" \
+  --experiment test-connect read --rows 1 -n 1
+
+# Full benchmarks
+bash ../scripts/cloud/no-cache/uniform-s.sh 1
+bash ../scripts/cloud/cache/uniform-s.sh 1
+```
+
+**5. Or use the automation script:**
+
+```bash
+bash ../scripts/cloud/after-deploy.sh
+```
 
 ## Architecture
 
@@ -98,89 +115,4 @@ disk_size_gb = 30
 
 ```bash
 ./tf.sh destroy
-```
-
-## I edited these configs for each Node to setup the peer to peer connections
-```bash
-❯ $HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-1 --zone europe-west3-c \
-  --command 'sudo tee /opt/toydb/toydb.yaml > /dev/null' << 'EOF'
-id: 1
-data_dir: /opt/toydb/data
-listen_sql: 0.0.0.0:9601
-listen_raft: 0.0.0.0:9701
-peers:
-  "2": 10.0.0.14:9702
-  "3": 10.0.0.12:9703
-  "4": 10.0.0.16:9704
-  "5": 10.0.0.13:9705
-EOF
-❯ $HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-2 --zone europe-west3-c \
-  --command 'sudo tee /opt/toydb/toydb.yaml > /dev/null' << 'EOF'
-id: 2
-data_dir: /opt/toydb/data
-listen_sql: 0.0.0.0:9602
-listen_raft: 0.0.0.0:9702
-peers:
-  "1": 10.0.0.15:9701
-  "3": 10.0.0.12:9703
-  "4": 10.0.0.16:9704
-  "5": 10.0.0.13:9705
-EOF
-❯ $HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-3 --zone europe-west3-c \
-  --command 'sudo tee /opt/toydb/toydb.yaml > /dev/null' << 'EOF'
-id: 3
-data_dir: /opt/toydb/data
-listen_sql: 0.0.0.0:9603
-listen_raft: 0.0.0.0:9703
-peers:
-  "1": 10.0.0.15:9701
-  "2": 10.0.0.14:9702
-  "4": 10.0.0.16:9704
-  "5": 10.0.0.13:9705
-EOF
-❯ $HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-4 --zone europe-west3-c \
-  --command 'sudo tee /opt/toydb/toydb.yaml > /dev/null' << 'EOF'
-id: 4
-data_dir: /opt/toydb/data
-listen_sql: 0.0.0.0:9604
-listen_raft: 0.0.0.0:9704
-peers:
-  "1": 10.0.0.15:9701
-  "2": 10.0.0.14:9702
-  "3": 10.0.0.12:9703
-  "5": 10.0.0.13:9705
-EOF
-❯ $HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-5 --zone europe-west3-c \
-  --command 'sudo tee /opt/toydb/toydb.yaml > /dev/null' << 'EOF'
-id: 5
-data_dir: /opt/toydb/data
-listen_sql: 0.0.0.0:9605
-listen_raft: 0.0.0.0:9705
-peers:
-  "1": 10.0.0.15:9701
-  "2": 10.0.0.14:9702
-  "3": 10.0.0.12:9703
-  "4": 10.0.0.16:9704
-EOF
-❯ for i in 1 2 3 4 5; do
-  $HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-$i --zone europe-west3-c \
-    --command 'sudo nohup /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml > /tmp/toydb.log 2>&1 &'
-done
-
-# check if the cluster run correctly on all nodes 
-❯ export PATH="$HOME/google-cloud-sdk/bin:$PATH"
-for i in 1 2 3 4 5; do
-  echo "node-$i: $($HOME/google-cloud-sdk/bin/gcloud compute ssh toydb-node-$i --zone europe-west3-c \
-    --command 'ps aux | grep toydb | grep -v grep' 2>/dev/null)"
-done
-node-1: root        5653  0.0  0.1  11900  5652 ?        S    08:49   0:00 sudo nohup /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-root        5654  0.1  0.1 753536  6464 ?        Sl   08:49   0:00 /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-node-2: root        5492  0.0  0.1  11904  5668 ?        S    08:49   0:00 sudo nohup /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-root        5493  0.1  0.1 753536  6644 ?        Sl   08:49   0:00 /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-node-3: root        5498  0.0  0.1  11904  5668 ?        S    08:49   0:00 sudo nohup /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-root        5499  0.1  0.1 753536  6456 ?        Sl   08:49   0:00 /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-node-4: root        5480  0.0  0.1  11896  5668 ?        S    08:49   0:00 sudo nohup /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-root        5481  0.1  0.1 753536  6424 ?        Sl   08:49   0:00 /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-node-5: root        5540  0.0  0.1  11896  5644 ?        S    08:49   0:00 sudo nohup /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
-root        5541  0.1  0.1 753536  6492 ?        Sl   08:49   0:00 /opt/toydb/target/release/toydb -c /opt/toydb/toydb.yaml
 ```
