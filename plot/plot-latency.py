@@ -52,6 +52,7 @@ def main():
     ax.margins(y=0.15)
 
     ax.set_ylabel("Latency [ms]")
+    ax.set_xlabel("Percentiles")
     ax.set_title("Latency percentiles")
     ax.grid(True, axis="y", **grid_style)
 
