@@ -48,11 +48,17 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
     x_max = max(t)
+    mark_step = max(1, len(t) // 10)
     # y_max = max(tps)
-    ax.plot(t, tps, marker="o", markevery=[-1] if single else None, label=label)
+    ax.plot(t, tps, marker="o", markevery=[-1] if single else mark_step, label=label)
 
-    ax.set_xticks(range(0, int(max(t)) + 2))
-    ax.set_xlim([1, x_max])
+    n_ticks = 10
+    step = max(1, int(x_max / n_ticks))
+    ticks = list(range(0, int(x_max) + 1, step))
+    if ticks[-1] != int(x_max):
+        ticks.append(int(x_max))
+    ax.set_xticks(ticks)
+    ax.set_xlim([1, x_max + 1])
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

@@ -63,8 +63,13 @@ def main():
 
         ax.plot(t, tps, marker="o", color=c, label=label)
 
-    ax.set_xlim(left=0)
-    ax.set_xticks(range(0, int(max_t) + 2))
+    n_ticks = 10
+    step = max(1, int(max_t / n_ticks))
+    ticks = list(range(0, int(max_t) + 1, step))
+    if ticks[-1] != int(max_t):
+        ticks.append(int(max_t))
+    ax.set_xticks(ticks)
+    ax.set_xlim(left=0, right=max_t + 1)
     ax.set_ylim(bottom=0)
 
     ax.set_xlabel("Time [s]")

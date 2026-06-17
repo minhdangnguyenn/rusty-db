@@ -10,7 +10,7 @@ legend_pos = {"loc": "upper left", "bbox_to_anchor": (1.02, 1)}
 
 grid_style = {"linestyle": "--", "alpha": 0.3}
 
-figsize_single = (8, 5)
+figsize_single = (15, 5)
 
 # figsize_overlay = (8, 4)
 # legend_pos_overlay = {"loc": "upper left", "bbox_to_anchor": (1.25, 1)}
