@@ -31,13 +31,6 @@ def load_csv(path):
     return rows
 
 
-def guess_label(path):
-    data = load_csv(path)
-    if data and "experiment" in data[0]:
-        return data[0]["experiment"]
-    return os.path.basename(path)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Compare latency percentiles of two experiments"
@@ -45,7 +38,7 @@ def main():
     parser.add_argument("files", nargs=2)
     args = parser.parse_args()
 
-    labels = [guess_label(f) for f in args.files]
+    labels = ["with cache", "without cache"]
     summaries = [load_csv(f)[-1] for f in args.files]
 
     categories = ["p50", "p90", "p99", "max"]
@@ -60,7 +53,7 @@ def main():
     width = 0.35
 
     fig, (ax1, ax2) = plt.subplots(
-        2, 1, figsize=figsize_single, gridspec_kw={"height_ratios": [2, 1]}, sharex=True
+        2, 1, figsize=(8, 6), gridspec_kw={"height_ratios": [2, 1]}, sharex=True
     )
     fig.subplots_adjust(hspace=0.08)
 
@@ -78,6 +71,7 @@ def main():
     ax2.set_ylabel("cache - no cache (ms)")
     ax2.set_xticks(x)
     ax2.set_xticklabels(categories)
+    ax2.set_xlabel("Percentiles")
     ax2.grid(axis="y", **grid_style)
     ax2.set_axisbelow(True)
 
@@ -96,7 +90,7 @@ def main():
     plt.tight_layout()
     os.makedirs("charts", exist_ok=True)
     plt.savefig(
-        f"charts/comparison-latency-{basename1}-{basename2}.png",
+        f"charts/compare-latency-{basename1}-{basename2}.png",
         dpi=300,
         bbox_inches="tight",
     )
