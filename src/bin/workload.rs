@@ -343,6 +343,9 @@ struct Read {
     /// enable cache or not
     #[arg(long)]
     cache: bool,
+
+    #[arg(long)]
+    fifo: bool,
 }
 
 impl std::fmt::Display for Read {
@@ -361,6 +364,9 @@ impl Workload for Read {
     fn prepare(&self, client: &mut Client, rng: &mut StdRng) -> Result<()> {
         if self.cache {
             cache::enable();
+        }
+        if self.fifo {
+            cache::set_eviction(cache::EvictType::FIFO);
         }
         client.execute("BEGIN")?;
         client.execute(r#"DROP TABLE IF EXISTS "read""#)?;
