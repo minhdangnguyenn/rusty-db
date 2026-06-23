@@ -4,15 +4,15 @@ import math
 import os
 import sys
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
-    exp1_color,
-    exp2_color,
-    figsize_single,
-    grid_style,
-    legend_pos,
+    exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
+    exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
+    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 
@@ -56,17 +56,32 @@ def main():
     if markers[-1] != len(t) - 1:
         markers.append(len(t) - 1)
 
-    ax.plot(t, hit_rate, marker="o", markevery=[-1] if single else markers,
-            label="Hit ratio", color=exp1_color)
-    ax.plot(t, miss_rate, marker="s", markevery=[-1] if single else markers,
-            label="Miss ratio", color=exp2_color, linestyle="--")
+    ax.plot(
+        t,
+        hit_rate,
+        marker="o",
+        markevery=[-1] if single else markers,
+        label="Hit ratio",
+        color=exp1_color,
+    )
+    ax.plot(
+        t,
+        miss_rate,
+        marker="s",
+        markevery=[-1] if single else markers,
+        label="Miss ratio",
+        color=exp2_color,
+        linestyle="--",
+    )
 
     end_tick = math.ceil(x_max)
     n_ticks = 10
     step = max(1, end_tick // n_ticks)
     ticks = list(range(0, end_tick + 1, step))
     if ticks[-1] != x_max:
-        ticks.append(x_max)
+        ticks[-1] = x_max
+        if len(ticks) >= 2 and x_max - ticks[-2] < 1.0:
+            ticks.pop(-2)
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
     ax.set_ylim([0, 100])

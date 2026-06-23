@@ -60,7 +60,9 @@ def main():
     step = max(1, end_tick // n_ticks)
     ticks = list(range(0, end_tick + 1, step))
     if ticks[-1] != x_max:
-        ticks.append(x_max)
+        ticks[-1] = x_max
+        if len(ticks) >= 2 and x_max - ticks[-2] < 1.0:
+            ticks.pop(-2)
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
 
