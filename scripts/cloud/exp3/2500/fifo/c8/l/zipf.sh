@@ -1,4 +1,4 @@
 ID=${1:-1}
 HOST_FLAG=""
 [ -n "${TOYDB_HOSTS:-}" ] && HOST_FLAG="-H $TOYDB_HOSTS"
-cargo run --release --bin workload -- $HOST_FLAG --experiment cloud-exp3-cache2500-fifo-c8-l-zipf --id "$ID" -c 8 read --rows 10000 --cache --cache-size 2500 --dist zipf --fifo
+cargo run --release --bin workload -- --experiment cloud-exp3-cache2500-fifo-c8-l-zipf -c 8 --id "$ID" read --rows 10000 --cache --dist zipf --cache-size 2500 --fifo
