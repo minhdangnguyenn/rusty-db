@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU8;
 use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
@@ -12,7 +13,7 @@ static CACHE: LazyLock<Mutex<Cache>> = LazyLock::new(|| Mutex::new(Cache::new())
 static HITS: AtomicU64 = AtomicU64::new(0);
 static MISSES: AtomicU64 = AtomicU64::new(0);
 static EVICT_TYPE: AtomicU8 = AtomicU8::new(0); // LRU
-const CACHE_SIZE: usize = 5000;
+static MAX_SIZE: AtomicUsize = AtomicUsize::new(5000);
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[allow(clippy::upper_case_acronyms)]
@@ -44,6 +45,10 @@ pub fn is_enabled() -> bool {
 
 pub fn set_eviction(ty: EvictType) {
     EVICT_TYPE.store(ty as u8, Relaxed);
+}
+
+pub fn set_max_size(size: usize) {
+    MAX_SIZE.store(size, Relaxed);
 }
 
 pub fn filter_uncached(keys: &HashSet<u64>) -> Vec<u64> {
@@ -108,7 +113,7 @@ pub fn insert(key: u64, value: String) {
     cache.entries.insert(key, value);
     cache.access_history.push(key);
     // when need evict
-    if cache.entries.len() > CACHE_SIZE {
+    if cache.entries.len() > MAX_SIZE.load(Relaxed) {
         let ty = match EVICT_TYPE.load(Relaxed) {
             1 => EvictType::FIFO,
             _ => EvictType::LRU,

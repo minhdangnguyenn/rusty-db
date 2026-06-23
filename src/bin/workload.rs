@@ -346,6 +346,10 @@ struct Read {
 
     #[arg(long)]
     fifo: bool,
+
+    /// Maximum number of entries in cache.
+    #[arg(long, default_value = "5000")]
+    cache_size: usize,
 }
 
 impl std::fmt::Display for Read {
@@ -364,6 +368,7 @@ impl Workload for Read {
     fn prepare(&self, client: &mut Client, rng: &mut StdRng) -> Result<()> {
         if self.cache {
             cache::enable();
+            cache::set_max_size(self.cache_size);
         }
         if self.fifo {
             cache::set_eviction(cache::EvictType::FIFO);
