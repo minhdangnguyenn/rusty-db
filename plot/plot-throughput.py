@@ -58,8 +58,11 @@ def main():
     end_tick = math.ceil(x_max)
     n_ticks = 10
     step = max(1, end_tick // n_ticks)
-    ax.set_xticks(range(0, end_tick + 1, step))
-    ax.set_xlim([1, end_tick + 1])
+    ticks = list(range(0, end_tick + 1, step))
+    if ticks[-1] != x_max:
+        ticks.append(x_max)
+    ax.set_xticks(ticks)
+    ax.set_xlim([0, end_tick + 1])
 
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate
+"exp2-large-fifo-l-uniform",1,"read (rows=10000 size=64 batch=1 distr=uniform)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",16,100000,16791084677885396490,1.123,100000,89051.298,0.000511,0.717823,2.291711,54.099967,89907,10093,0.899070
