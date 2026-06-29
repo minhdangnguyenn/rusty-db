@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate
+"cloud-exp2-cache5000-fifo-l-zipf",2,"read (rows=10000 size=64 batch=1 distr=zipf)","34.89.241.86:9601;34.179.165.99:9602;34.185.226.67:9603;34.179.161.47:9604;34.185.212.77:9605",16,100000,16791084677885396490,10.335,100000,9676.219,0.001023,10.084351,19.365887,134.348799,88845,11155,0.888450
