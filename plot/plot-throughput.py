@@ -65,7 +65,7 @@ def main():
             ticks.pop(-2)
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
-
+    ax.set_ylim(bottom=0)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
     ax.set_title("Throughput over time")
