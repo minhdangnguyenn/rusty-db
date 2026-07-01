@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate
-"exp1-cache-s-txns30_0000",1,"read (rows=1000 size=64 batch=1 distr=uniform)","35.198.132.71:9601;34.159.7.82:9602;35.246.180.124:9603;35.242.215.83:9604;35.234.127.8:9605",16,30000000,16791084677885396490,43.237,30000000,693845.663,0.001023,0.075263,0.140287,509.870079,29998945,1055,0.999965
