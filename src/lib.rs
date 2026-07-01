@@ -14,3 +14,5 @@ pub mod storage;
 pub use client::Client;
 pub use server::Server;
 pub use sql::execution::StatementResult;
+
+pub mod log;
