@@ -21,6 +21,62 @@ use toydb::error::Result;
 use toydb::sql::types::Value;
 use toydb::{Client, StatementResult, cache, errdata};
 
+fn latency_stats(hist: &Histogram<u32>) -> (f64, f64, f64, f64) {
+    let p50_ms = Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
+    let p90_ms = Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
+    let p99_ms = Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
+    let max = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
+    (p50_ms, p90_ms, p99_ms, max)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn log_stats(
+    csv: &mut impl std::io::Write,
+    duration_s: f64,
+    progress: f64,
+    txns: u64,
+    throughput: f64,
+    p50_ms: f64,
+    p90_ms: f64,
+    p99_ms: f64,
+    max: f64,
+    cache_hits: u64,
+    cache_misses: u64,
+    cache_hit_rate: f64,
+) -> Result<()> {
+    println!(
+        "{:<8} {:>5.1}%  {:>7}  {:>6.0}/s  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>7}  {:>7}  {:>5.1}%",
+        format!("{:.1}s", duration_s),
+        progress,
+        txns,
+        throughput,
+        p50_ms,
+        p90_ms,
+        p99_ms,
+        max,
+        cache_hits,
+        cache_misses,
+        cache_hit_rate * 100.0,
+    );
+    writeln!(
+        csv,
+        "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6},{},{},{:.6}",
+        duration_s,
+        progress,
+        txns,
+        throughput,
+        p50_ms,
+        p90_ms,
+        p99_ms,
+        max,
+        cache_hits,
+        cache_misses,
+        cache_hit_rate,
+    )?;
+    csv.flush()?;
+    Ok(())
+}
+
 fn main() {
     let Command { runner, subcommand } = Command::parse();
     let result = match subcommand {
@@ -64,11 +120,11 @@ struct Runner {
     concurrency: usize,
 
     /// Number of transactions to execute.
-    #[arg(short = 'n', long, default_value = "100000")]
+    #[arg(short = 'n', long, default_value = "100000")] // 100_000
     count: usize,
 
     /// run for this many seconds (capped by --count)
-    #[arg(long, default_value = "40")]
+    #[arg(long, default_value = "30")]
     duration: f64,
 
     /// Seed to use for random number generation.
@@ -217,33 +273,11 @@ impl Runner {
                 let txns = hist.len();
                 let throughput = hist.len() as f64 / duration_s;
 
-                let p50_ms =
-                    Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
-                let p90_ms =
-                    Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
-                let p99_ms =
-                    Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
-                let max = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
-
+                let (p50_ms, p90_ms, p99_ms, max) = latency_stats(&hist);
                 let (cache_hits, cache_misses, cache_hit_rate) = cache::stats();
 
-                println!(
-                    "{:<8} {:>5.1}%  {:>7}  {:>6.0}/s  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>6.1}ms  {:>7}  {:>7}  {:>5.1}%",
-                    format!("{:.1}s", duration_s),
-                    progress,
-                    txns,
-                    throughput,
-                    p50_ms,
-                    p90_ms,
-                    p99_ms,
-                    max,
-                    cache_hits,
-                    cache_misses,
-                    cache_hit_rate * 100.0,
-                );
-                writeln!(
-                    csv,
-                    "{:.3},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6},{},{},{:.6}",
+                log_stats(
+                    &mut csv,
                     duration_s,
                     progress,
                     txns,
@@ -256,7 +290,6 @@ impl Runner {
                     cache_misses,
                     cache_hit_rate,
                 )?;
-                csv.flush()?; // keep data even if benchmark aborts
 
                 if Instant::now() >= deadline {
                     stop.store(true, Ordering::Relaxed);
@@ -274,10 +307,7 @@ impl Runner {
         let txns = hist.len();
         let throughput = txns as f64 / total_time_s;
 
-        let p50_ms = Duration::from_nanos(hist.value_at_quantile(0.5)).as_secs_f64() * 1000.0;
-        let p90_ms = Duration::from_nanos(hist.value_at_quantile(0.9)).as_secs_f64() * 1000.0;
-        let p99_ms = Duration::from_nanos(hist.value_at_quantile(0.99)).as_secs_f64() * 1000.0;
-        let max = Duration::from_nanos(hist.max()).as_secs_f64() * 1000.0;
+        let (p50_ms, p90_ms, p99_ms, max) = latency_stats(&hist);
 
         let hosts = self.hosts.join(";");
 
