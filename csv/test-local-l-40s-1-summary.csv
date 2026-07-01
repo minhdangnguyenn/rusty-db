@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
+"test-local-l-40s",1,"read (rows=10000 size=64 batch=1 block=100 distr=uniform)","localhost:9601;localhost:9602;localhost:9603;localhost:9604;localhost:9605",16,10000000,16791084677885396490,40.018,606875,15165.054,0.792063,2.562047,4.386815,67.633151,302377,304498,0.498253,40.0

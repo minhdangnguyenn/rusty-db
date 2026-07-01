@@ -4,18 +4,22 @@ use std::collections::HashSet;
 use std::fs::{File, create_dir_all};
 use std::io::{BufWriter, Write as _};
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use hdrhistogram::Histogram;
 use itertools::Itertools as _;
+use rand::RngExt as _;
 use rand::SeedableRng as _;
 use rand::distr::Distribution as _;
 use rand::rngs::StdRng;
+use rand::seq::SliceRandom as _;
 
 use toydb::error::Result;
 use toydb::sql::types::Value;
-use toydb::{Client, StatementResult, cache, errdata, errinput};
+use toydb::{Client, StatementResult, cache, errdata};
 
 fn main() {
     let Command { runner, subcommand } = Command::parse();
@@ -62,6 +66,10 @@ struct Runner {
     /// Number of transactions to execute.
     #[arg(short = 'n', long, default_value = "100000")]
     count: usize,
+
+    /// run for this many seconds (capped by --count)
+    #[arg(long, default_value = "40")]
+    duration: f64,
 
     /// Seed to use for random number generation.
     #[arg(short, long, default_value = "16791084677885396490")]
@@ -122,7 +130,7 @@ impl Runner {
             let mut w = BufWriter::new(f);
             writeln!(
                 w,
-                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate"
+                "experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration"
             )?;
             w
         };
@@ -166,13 +174,21 @@ impl Runner {
 
             println!("done ({:.3}s)", start.elapsed().as_secs_f64());
 
+            let stop = Arc::new(AtomicBool::new(false));
+
             // Spawn work generator.
             {
                 println!("Running workload {}...", workload);
-                let generator = workload.generate(rng)?.take(self.count);
+                let generator = workload.generate(rng)?;
+                let stop = stop.clone();
                 s.spawn(move || -> Result<()> {
                     for item in generator {
-                        work_tx.send(item)?;
+                        if stop.load(Ordering::Relaxed) {
+                            break;
+                        }
+                        if work_tx.send(item).is_err() {
+                            break;
+                        }
                     }
                     Ok(())
                 });
@@ -180,6 +196,7 @@ impl Runner {
 
             // Periodically print stats until all workers are done.
             let start = Instant::now();
+            let deadline = Instant::now() + Duration::from_secs_f64(self.duration);
             let ticker = crossbeam::channel::tick(Duration::from_secs(1));
 
             println!();
@@ -190,13 +207,13 @@ impl Runner {
             while let Err(crossbeam::channel::TryRecvError::Empty) = done_rx.try_recv() {
                 crossbeam::select! {
                     recv(ticker) -> _ => {},
-                    recv(done_rx) -> _ => {},
+                    recv(done_rx) -> _ => break,
                 }
 
                 let duration_s = start.elapsed().as_secs_f64();
                 hist.refresh_timeout(Duration::from_secs(1));
 
-                let progress = hist.len() as f64 / self.count as f64 * 100.0;
+                let progress = (duration_s / self.duration * 100.0).min(100.0);
                 let txns = hist.len();
                 let throughput = hist.len() as f64 / duration_s;
 
@@ -240,9 +257,15 @@ impl Runner {
                     cache_hit_rate,
                 )?;
                 csv.flush()?; // keep data even if benchmark aborts
+
+                if Instant::now() >= deadline {
+                    stop.store(true, Ordering::Relaxed);
+                    break;
+                }
             }
             Ok(())
         })?;
+        csv.flush()?; // flush any remaining csv data
 
         // Write one-row CSV summary.
         let total_time_s = bench_start.elapsed().as_secs_f64();
@@ -261,7 +284,7 @@ impl Runner {
         let (cache_hits, cache_misses, cache_hit_rate) = cache::stats();
         writeln!(
             csv_summary,
-            "\"{}\",{},{:?},\"{}\",{},{},{},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6},{},{},{:.6}",
+            "\"{}\",{},{:?},\"{}\",{},{},{},{:.3},{},{:.3},{:.6},{:.6},{:.6},{:.6},{},{},{:.6},{:.1}",
             self.experiment,
             id,
             workload.to_string(),
@@ -279,6 +302,7 @@ impl Runner {
             cache_hits,
             cache_misses,
             cache_hit_rate,
+            self.duration,
         )?;
         csv_summary.flush()?;
 
@@ -333,6 +357,10 @@ struct Read {
     #[arg(short, long, default_value = "1")]
     batch: usize,
 
+    /// block size for unique/repeated key pattern
+    #[arg(long, default_value = "100")]
+    block_size: usize,
+
     #[arg(long, default_value = "uniform")]
     dist: String,
 
@@ -356,8 +384,8 @@ impl std::fmt::Display for Read {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "read (rows={} size={} batch={} distr={})",
-            self.rows, self.size, self.batch, self.dist
+            "read (rows={} size={} batch={} block={} distr={})",
+            self.rows, self.size, self.batch, self.block_size, self.dist
         )
     }
 }
@@ -393,13 +421,19 @@ impl Workload for Read {
         Ok(())
     }
 
-    fn generate(&self, rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        let dist = match self.dist.as_str() {
-            "uniform" => KeyDist::Uniform(rand::distr::Uniform::new(1, self.rows + 1)?),
-            "zipf" => KeyDist::Zipf(rand_distr::Zipf::new(self.rows as f64, self.zipf_skew)?),
-            other => return Err(errinput!("unknown distribution: {other}")),
-        };
-        Ok(ReadGenerator { batch: self.batch, dist, rng })
+    fn generate(&self, mut rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
+        let mut unseen: Vec<u64> = (1..=self.rows).collect();
+        unseen.shuffle(&mut rng);
+        Ok(BlockReadGenerator {
+            batch: self.batch,
+            block_size: self.block_size,
+            rng,
+            unseen,
+            unseen_idx: 0,
+            seen: Vec::with_capacity(self.rows as usize),
+            keys_remaining: self.block_size,
+            is_unique_block: true,
+        })
     }
 
     // start running the workload
@@ -441,37 +475,50 @@ impl Workload for Read {
     }
 }
 
-/// enum for ReadGeneratore
-enum KeyDist {
-    Uniform(rand::distr::Uniform<u64>),
-    Zipf(rand_distr::Zipf<f64>),
-}
-
-impl rand::distr::Distribution<u64> for KeyDist {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> u64 {
-        match self {
-            KeyDist::Uniform(u) => u.sample(rng),
-            KeyDist::Zipf(z) => z.sample(rng) as u64,
-        }
-    }
-}
-
-/// A Read workload generator, yielding batches of random, unique primary keys.
-struct ReadGenerator {
+/// key generator that alternates unique and repeated blocks.
+/// each unique block generates fresh keys not seen before.
+/// each repeated block samples randomly from keys seen so far.
+struct BlockReadGenerator {
     batch: usize,
+    block_size: usize,
     rng: StdRng,
-    dist: KeyDist,
+    unseen: Vec<u64>,
+    unseen_idx: usize,
+    seen: Vec<u64>,
+    keys_remaining: usize,
+    is_unique_block: bool,
 }
 
-impl Iterator for ReadGenerator {
+impl Iterator for BlockReadGenerator {
     type Item = <Read as Workload>::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.keys_remaining == 0 {
+            self.is_unique_block = !self.is_unique_block;
+            self.keys_remaining = self.block_size;
+        }
+
+        let n = self.batch.min(self.keys_remaining);
+        self.keys_remaining -= n;
+
         let mut ids = HashSet::new();
-        for id in (&self.dist).sample_iter(&mut self.rng) {
-            ids.insert(id);
-            if ids.len() >= self.batch {
-                break;
+        if self.is_unique_block {
+            for _ in 0..n {
+                if self.unseen_idx < self.unseen.len() {
+                    let id = self.unseen[self.unseen_idx];
+                    self.unseen_idx += 1;
+                    self.seen.push(id);
+                    ids.insert(id);
+                } else {
+                    // all keys seen — fall back to sampling from seen
+                    let i = self.rng.random_range(0..self.seen.len());
+                    ids.insert(self.seen[i]);
+                }
+            }
+        } else {
+            for _ in 0..n {
+                let i = self.rng.random_range(0..self.seen.len());
+                ids.insert(self.seen[i]);
             }
         }
         Some(ids)

@@ -49,23 +49,31 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
     x_max = max(t)
-    markers = list(range(0, len(t), max(1, len(t) // 10)))
+    markers = list(range(0, len(t)))
     if markers[-1] != len(t) - 1:
         markers.append(len(t) - 1)
-    # y_max = max(tps)
     ax.plot(t, tps, marker="o", markevery=[-1] if single else markers, label=label)
 
     end_tick = math.ceil(x_max)
-    n_ticks = 10
-    step = max(1, end_tick // n_ticks)
-    ticks = list(range(0, end_tick + 1, step))
-    if ticks[-1] != x_max:
-        ticks[-1] = x_max
-        if len(ticks) >= 2 and x_max - ticks[-2] < 1.0:
-            ticks.pop(-2)
+    ticks = list(range(0, end_tick + 1))
+
+    # n_ticks = 10
+    # step = max(1, end_tick // n_ticks)
+    # ticks = list(range(0, end_tick + 1, step))
+    # if ticks[-1] != x_max:
+    #     ticks[-1] = x_max
+    #     if len(ticks) >= 2 and x_max - ticks[-2] < 1.0:
+    #         ticks.pop(-2)
+
     ax.set_xticks(ticks)
-    ax.set_xlim([0, end_tick + 1])
+    ax.set_xlim([0, end_tick])
     ax.set_ylim(bottom=0)
+
+    y_max = max(tps)
+    yticks = [t for t in ax.get_yticks() if t < y_max] + [y_max]
+    ax.set_yticks(yticks)
+    ax.set_ylim(bottom=0, top=y_max * 1.05)
+
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
     ax.set_title("Throughput over time")
