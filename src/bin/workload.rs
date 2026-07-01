@@ -398,17 +398,17 @@ impl Workload for Read {
     }
 
     fn generate(&self, mut rng: StdRng) -> Result<impl Iterator<Item = Self::Item> + 'static> {
-        let mut unseen: Vec<u64> = (1..=self.rows).collect();
-        unseen.shuffle(&mut rng);
-        Ok(BlockReadGenerator {
+        let mut fresh_keys: Vec<u64> = (1..=self.rows).collect();
+        fresh_keys.shuffle(&mut rng);
+        Ok(BlockGen {
             batch: self.batch,
             block_size: self.block_size,
             rng,
-            unseen,
-            unseen_idx: 0,
-            seen: Vec::with_capacity(self.rows as usize),
-            keys_remaining: self.block_size,
-            is_unique_block: true,
+            fresh_keys,
+            fresh_idx: 0,
+            used_keys: Vec::with_capacity(self.rows as usize),
+            block_remaining: self.block_size,
+            is_fresh_block: true,
         })
     }
 
@@ -452,49 +452,49 @@ impl Workload for Read {
 }
 
 /// key generator that alternates unique and repeated blocks.
-/// each unique block generates fresh keys not seen before.
-/// each repeated block samples randomly from keys seen so far.
-struct BlockReadGenerator {
+/// each fresh block generates keys from fresh_keys (never used before -- uncached).
+/// each reused block samples randomly from used_keys (seen before -- cached).
+struct BlockGen {
     batch: usize,
     block_size: usize,
     rng: StdRng,
-    unseen: Vec<u64>,
-    unseen_idx: usize,
-    seen: Vec<u64>,
-    keys_remaining: usize,
-    is_unique_block: bool,
+    fresh_keys: Vec<u64>,
+    fresh_idx: usize,
+    used_keys: Vec<u64>,
+    block_remaining: usize,
+    is_fresh_block: bool,
 }
 
-impl Iterator for BlockReadGenerator {
+impl Iterator for BlockGen {
     type Item = <Read as Workload>::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.keys_remaining == 0 {
-            self.is_unique_block = !self.is_unique_block;
-            self.keys_remaining = self.block_size;
+        if self.block_remaining == 0 {
+            self.is_fresh_block = !self.is_fresh_block;
+            self.block_remaining = self.block_size;
         }
 
-        let n = self.batch.min(self.keys_remaining);
-        self.keys_remaining -= n;
+        let n = self.batch.min(self.block_remaining);
+        self.block_remaining -= n;
 
         let mut ids = HashSet::new();
-        if self.is_unique_block {
+        if self.is_fresh_block {
             for _ in 0..n {
-                if self.unseen_idx < self.unseen.len() {
-                    let id = self.unseen[self.unseen_idx];
-                    self.unseen_idx += 1;
-                    self.seen.push(id);
+                if self.fresh_idx < self.fresh_keys.len() {
+                    let id = self.fresh_keys[self.fresh_idx];
+                    self.fresh_idx += 1;
+                    self.used_keys.push(id);
                     ids.insert(id);
                 } else {
-                    // all keys seen — fall back to sampling from seen
-                    let i = self.rng.random_range(0..self.seen.len());
-                    ids.insert(self.seen[i]);
+                    // all keys seen — fall back to sampling from used_keys
+                    let i = self.rng.random_range(0..self.used_keys.len());
+                    ids.insert(self.used_keys[i]);
                 }
             }
         } else {
             for _ in 0..n {
-                let i = self.rng.random_range(0..self.seen.len());
-                ids.insert(self.seen[i]);
+                let i = self.rng.random_range(0..self.used_keys.len());
+                ids.insert(self.used_keys[i]);
             }
         }
         Some(ids)
