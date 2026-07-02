@@ -1,2 +1,0 @@
-time_s,progress,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate
-0.849,100.000,100000,117780.720,0.001023,0.126975,6.889471,282.329087,98871,1129,0.988710

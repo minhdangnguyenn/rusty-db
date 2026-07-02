@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate
-"cloud-exp3-cache5000-c32-l-zipf",1,"read (rows=10000 size=64 batch=1 distr=zipf)","34.179.134.249:9601;34.40.20.8:9602;34.179.140.14:9603;35.198.155.42:9604;35.242.218.220:9605",32,100000,16791084677885396490,5.655,100000,17684.815,0.004607,7.065599,13.418495,425.983999,87277,12723,0.872770

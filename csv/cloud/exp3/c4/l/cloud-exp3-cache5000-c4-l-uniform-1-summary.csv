@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate
-"cloud-exp3-cache5000-c4-l-uniform",1,"read (rows=10000 size=64 batch=1 distr=uniform)","34.179.134.249:9601;34.40.20.8:9602;34.179.140.14:9603;35.198.155.42:9604;35.242.218.220:9605",4,100000,16791084677885396490,157.926,100000,633.208,5.373951,10.059775,46.432255,445.382655,48707,51293,0.487070
