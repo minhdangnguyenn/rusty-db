@@ -65,6 +65,7 @@ def main():
             ticks.pop(-2)
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
+    ax.ticklabel_format(style="plain", axis="y")
     ax.set_ylim(bottom=0)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

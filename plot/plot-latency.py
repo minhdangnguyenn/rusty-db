@@ -51,6 +51,7 @@ def main():
     ax.bar_label(bars, fmt="%.1f", padding=2)
     ax.margins(y=0.15)
 
+    ax.ticklabel_format(style="plain", axis="y")
     ax.set_ylabel("Latency [ms]")
     ax.set_xlabel("Percentiles")
     ax.set_title("Latency percentiles")
