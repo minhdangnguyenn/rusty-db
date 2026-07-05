@@ -106,6 +106,7 @@ def main():
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
     ax.set_ylim(bottom=0)
+    ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
     ax.set_title("Throughput with 95% confidence interval")
