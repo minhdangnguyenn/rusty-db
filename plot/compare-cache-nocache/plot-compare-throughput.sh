@@ -1,6 +1,0 @@
-#!/bin/bash
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-PYTHON="$SCRIPT_DIR/.venv/bin/python3"
-
-$PYTHON "$SCRIPT_DIR/plot-compare-throughput.py" "$1" "$2"
-echo "compare throughput chart saved to charts/"
