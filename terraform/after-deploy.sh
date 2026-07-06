@@ -45,5 +45,3 @@ echo "=== Export TOYDB_HOSTS ==="
 echo ""
 echo "  export TOYDB_HOSTS=\"$HOSTS\""
 echo ""
-echo "=== Quick test ==="
-./target/release/workload -H "$HOSTS" --experiment test-connect read --rows 1 -n 1
