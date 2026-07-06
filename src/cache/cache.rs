@@ -23,15 +23,57 @@ pub enum EvictType {
     FIFO = 1,
 }
 
+struct CacheEntry {
+    value: String,
+    prev: Option<u64>,
+    next: Option<u64>,
+}
+
 struct Cache {
-    entries: HashMap<u64, String>,
-    access_history: Vec<u64>,
-    cursor: usize,
+    entries: HashMap<u64, CacheEntry>,
+    head: Option<u64>, // MRU end
+    tail: Option<u64>, // LRU end
 }
 
 impl Cache {
     fn new() -> Cache {
-        Cache { access_history: Vec::new(), entries: HashMap::new(), cursor: 0 }
+        Cache { entries: HashMap::new(), head: None, tail: None }
+    }
+
+    /// my helper functions
+    fn detach(&mut self, key: u64) {
+        let (prev, next) = {
+            let entry = self.entries.get(&key).expect("key must exist");
+            (entry.prev, entry.next)
+        };
+        match prev {
+            Some(p) => self.entries.get_mut(&p).unwrap().next = next,
+            None => self.head = next,
+        }
+        match next {
+            Some(n) => self.entries.get_mut(&n).unwrap().prev = prev,
+            None => self.tail = prev,
+        }
+    }
+
+    fn attach_to_front(&mut self, key: u64) {
+        let old_head = self.head;
+        {
+            let entry = self.entries.get_mut(&key).unwrap();
+            entry.prev = None;
+            entry.next = old_head;
+        }
+        match old_head {
+            Some(old) => self.entries.get_mut(&old).unwrap().prev = Some(key),
+            None => self.tail = Some(key),
+        }
+        self.head = Some(key);
+    }
+
+    fn pop_tail(&mut self) -> Option<u64> {
+        let key = self.tail?;
+        self.detach(key);
+        Some(key)
     }
 }
 
@@ -56,17 +98,19 @@ pub fn filter_uncached(keys: &HashSet<u64>) -> Vec<u64> {
         return keys.iter().copied().collect();
     }
     let mut cache = CACHE.lock().unwrap();
+    let evict_type = EVICT_TYPE.load(Relaxed);
     let mut uncached = Vec::new();
-    for key in keys.iter() {
-        if cache.entries.contains_key(key) {
+
+    for &key in keys {
+        if cache.entries.contains_key(&key) {
             HITS.fetch_add(1, Relaxed);
-            if EVICT_TYPE.load(Relaxed) == EvictType::LRU as u8 {
-                cache.access_history.retain(|k| k != key);
-                cache.access_history.push(*key);
+            if evict_type == EvictType::LRU as u8 {
+                cache.detach(key);
+                cache.attach_to_front(key);
             }
         } else {
             MISSES.fetch_add(1, Relaxed);
-            uncached.push(*key);
+            uncached.push(key);
         }
     }
     uncached
@@ -79,27 +123,6 @@ pub fn stats() -> (u64, u64, f64) {
     (hits, misses, ratio)
 }
 
-fn evict(cache: &mut Cache, evict_type: EvictType) {
-    loop {
-        if cache.cursor >= cache.access_history.len() {
-            cache.cursor = 0;
-        }
-        if evict_type == EvictType::LRU {
-            let candidate = cache.access_history[cache.cursor];
-            cache.cursor += 1;
-            if cache.entries.contains_key(&candidate) {
-                cache.entries.remove(&candidate);
-                break;
-            }
-        } else if evict_type == EvictType::FIFO {
-            if let Some(&candidate) = cache.access_history.first() {
-                cache.entries.remove(&candidate);
-            }
-            break;
-        }
-    }
-}
-
 pub fn reset_stats() {
     HITS.store(0, Relaxed);
     MISSES.store(0, Relaxed);
@@ -110,14 +133,23 @@ pub fn insert(key: u64, value: String) {
         return;
     }
     let mut cache = CACHE.lock().unwrap();
-    cache.entries.insert(key, value);
-    cache.access_history.push(key);
-    // when need evict
-    if cache.entries.len() > MAX_SIZE.load(Relaxed) {
-        let ty = match EVICT_TYPE.load(Relaxed) {
-            1 => EvictType::FIFO,
-            _ => EvictType::LRU,
-        };
-        evict(&mut cache, ty);
+    let max_size = MAX_SIZE.load(Relaxed);
+
+    if let Some(entry) = cache.entries.get_mut(&key) {
+        entry.value = value;
+        if EVICT_TYPE.load(Relaxed) == EvictType::LRU as u8 {
+            cache.detach(key);
+            cache.attach_to_front(key);
+        }
+        return;
+    }
+
+    cache.entries.insert(key, CacheEntry { value, prev: None, next: None });
+    cache.attach_to_front(key);
+
+    if cache.entries.len() > max_size {
+        if let Some(victim) = cache.pop_tail() {
+            cache.entries.remove(&victim);
+        }
     }
 }
