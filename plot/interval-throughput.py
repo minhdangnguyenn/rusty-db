@@ -74,17 +74,6 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot([], [], color="gray", alpha=0.3, linewidth=0.8, label="Individual runs")
-    for run in runs:
-        t = [round(r["time_s"]) for r in run]
-        vals = [r["throughput"] for r in run]
-        dedup = {}
-        for tt, vv in zip(t, vals):
-            dedup[tt] = vv
-        t = sorted(dedup.keys())
-        vals = [dedup[tt] for tt in t]
-        # ax.plot(t, vals, color="gray", alpha=0.3, linewidth=0.8)
-
     ax.plot(times, means, color=exp1_color, linewidth=2, label="Mean")
     ax.fill_between(
         times,
