@@ -40,7 +40,6 @@ impl Cache {
         Cache { entries: HashMap::new(), head: None, tail: None }
     }
 
-    /// my helper functions
     fn detach(&mut self, key: u64) {
         let (prev, next) = {
             let entry = self.entries.get(&key).expect("key must exist");
