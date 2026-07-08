@@ -26,6 +26,3 @@ for i in 1 2 3 4 5; do
 done
 
 echo "=== Cluster ready ==="
-
-# bash scripts/cloud-sanitize.sh               # default zone
-# bash scripts/cloud-sanitize.sh us-central1-a  # custom zone
