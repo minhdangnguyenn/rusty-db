@@ -1,5 +1,6 @@
 import argparse
 import csv
+import math
 import os
 import sys
 
@@ -48,36 +49,52 @@ def main():
 
     t1 = [row["time_s"] for row in r1]
     tp1 = [row["throughput"] for row in r1]
+    lo1 = [row.get("throughput_ci_lower", row["throughput"]) for row in r1]
+    hi1 = [row.get("throughput_ci_upper", row["throughput"]) for row in r1]
+
     t2 = [row["time_s"] for row in r2]
     tp2 = [row["throughput"] for row in r2]
+    lo2 = [row.get("throughput_ci_lower", row["throughput"]) for row in r2]
+    hi2 = [row.get("throughput_ci_upper", row["throughput"]) for row in r2]
 
     fig, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot(t1, tp1, color=args.color1, linewidth=2, label=args.label1)
-    ax.plot(t2, tp2, color=args.color2, linewidth=2, label=args.label2)
+    ax.plot(t1, tp1, color=args.color1, linewidth=2, label=f"{args.label1} mean")
+    ax.fill_between(
+        t1, lo1, hi1,
+        color=args.color1, alpha=0.2,
+        label=f"{args.label1} 95% CI",
+    )
+    ax.plot(t2, tp2, color=args.color2, linewidth=2, label=f"{args.label2} mean")
+    ax.fill_between(
+        t2, lo2, hi2,
+        color=args.color2, alpha=0.2,
+        label=f"{args.label2} 95% CI",
+    )
 
-    ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Throughput [txns/s]")
-    ax.set_xlim(left=0)
+    all_t = sorted(set(t1 + t2))
+    end_tick = math.ceil(max(all_t))
+    n_ticks = 10
+    step = max(1, end_tick // n_ticks)
+    ticks = list(range(0, end_tick + 1, step))
+    if ticks[-1] != end_tick:
+        ticks[-1] = end_tick
+        if len(ticks) >= 2 and end_tick - ticks[-2] < 1.0:
+            ticks.pop(-2)
+    ax.set_xticks(ticks)
+    ax.set_xlim([0, end_tick + 1])
     ax.set_ylim(bottom=0)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Throughput [txns/s]")
+    ax.set_title("Throughput comparison with 95% confidence interval")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
     label_text = f"{args.label1}-{args.label2}"
-    fig.text(
-        0.5,
-        0.01,
-        label_text,
-        ha="center",
-        fontsize=8,
-        fontstyle="italic",
-        color="gray",
-    )
-
     output = args.output or f"charts/compare-throughput-{label_text}.png"
-    os.makedirs("charts", exist_ok=True)
+    os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.savefig(output, dpi=300, bbox_inches="tight")
 
 

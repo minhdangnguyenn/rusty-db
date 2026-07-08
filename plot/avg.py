@@ -1,6 +1,7 @@
 import argparse
 import csv
 import glob
+import math
 import os
 
 NUMERIC_COLS = [
@@ -15,6 +16,37 @@ NUMERIC_COLS = [
     "cache_misses",
     "cache_hit_rate",
 ]
+CI_COLS = [f"{col}_ci_lower" for col in NUMERIC_COLS] + [
+    f"{col}_ci_upper" for col in NUMERIC_COLS
+]
+
+
+T_TABLE = {
+    2: 12.706,
+    3: 4.303,
+    4: 3.182,
+    5: 2.776,
+    6: 2.571,
+    7: 2.447,
+    8: 2.365,
+    9: 2.306,
+    10: 2.262,
+}
+
+
+def t_critical(n):
+    return T_TABLE.get(n, 1.96)
+
+
+def mean_ci(vals):
+    n = len(vals)
+    mean = sum(vals) / n
+    if n < 2:
+        return mean, mean, mean
+    var = sum((v - mean) ** 2 for v in vals) / (n - 1)
+    std = math.sqrt(var)
+    half = t_critical(n) * std / math.sqrt(n)
+    return mean, mean - half, mean + half
 
 
 def load_csv(path):
@@ -42,7 +74,11 @@ def main():
 
     data_dir = args.dir
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [f for f in csvs if "summary" not in os.path.basename(f)]
+    csvs = [
+        f
+        for f in csvs
+        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
+    ]
 
     if not csvs:
         print("No CSV files found")
@@ -51,7 +87,6 @@ def main():
     print(f"Found {len(csvs)} CSV files")
 
     runs = [load_csv(f) for f in csvs]
-    n_runs = len(runs)
 
     grid = {}
     for run in runs:
@@ -67,24 +102,29 @@ def main():
         row = {"time_s": t}
         for col in NUMERIC_COLS:
             vals = grid[t][col]
-            if len(vals) == n_runs:
-                row[col] = round(sum(vals) / len(vals), 3)
+            if len(vals) < 1:
+                row[col] = 0.0
+                row[f"{col}_ci_lower"] = 0.0
+                row[f"{col}_ci_upper"] = 0.0
             else:
-                row[col] = round(sum(vals) / len(vals), 3) if vals else 0.0
+                m, lo, hi = mean_ci(vals)
+                row[col] = round(m, 3)
+                row[f"{col}_ci_lower"] = round(lo, 3)
+                row[f"{col}_ci_upper"] = round(hi, 3)
         out_rows.append(row)
 
-    # Determine output path
     if args.output:
         out_path = args.output
     else:
         out_path = os.path.join(data_dir, "avg.csv")
 
+    fieldnames = ["time_s"] + NUMERIC_COLS + CI_COLS
     with open(out_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["time_s"] + NUMERIC_COLS)
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for row in out_rows:
             formatted = {"time_s": row["time_s"]}
-            for col in NUMERIC_COLS:
+            for col in NUMERIC_COLS + CI_COLS:
                 formatted[col] = f"{row[col]:.3f}"
             writer.writerow(formatted)
 
