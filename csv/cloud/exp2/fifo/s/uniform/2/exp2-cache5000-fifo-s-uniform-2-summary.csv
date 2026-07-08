@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
-"exp2-cache5000-fifo-s-uniform",2,"read (rows=1000 size=64 batch=1 block=100 distr=uniform)","34.89.140.40:9601;34.179.186.50:9602;34.185.129.150:9603;34.179.133.35:9604;35.198.111.154:9605",16,100000,16791084677885396490,30.216,50883984,1683994.232,0.000511,0.000511,0.003583,283.639807,50882941,1043,0.999980,30.0
