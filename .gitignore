@@ -6,6 +6,7 @@
 .vscode/
 **/*.rs.bk
 .venv/
+.zed/
 
 # Terraform GitIgnore
 
