@@ -146,9 +146,9 @@ pub fn insert(key: u64, value: String) {
     cache.entries.insert(key, CacheEntry { value, prev: None, next: None });
     cache.attach_to_front(key);
 
-    if cache.entries.len() > max_size {
-        if let Some(victim) = cache.pop_tail() {
-            cache.entries.remove(&victim);
-        }
+    if cache.entries.len() > max_size
+        && let Some(victim) = cache.pop_tail()
+    {
+        cache.entries.remove(&victim);
     }
 }
