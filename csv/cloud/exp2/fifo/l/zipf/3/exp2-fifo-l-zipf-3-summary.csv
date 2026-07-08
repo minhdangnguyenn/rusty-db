@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
+"exp2-fifo-l-zipf",3,"read (rows=10000 size=64 batch=1 block=100 distr=zipf)","34.40.96.224:9601;34.141.28.1:9602;34.107.100.41:9603;34.141.57.193:9604;34.141.74.61:9605",16,100000,16791084677885396490,30.187,63945,2118.305,9.740287,16.424959,24.723455,235.798527,30256,33689,0.473157,30.0

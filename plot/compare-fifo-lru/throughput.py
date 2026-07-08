@@ -61,14 +61,20 @@ def main():
 
     ax.plot(t1, tp1, color=args.color1, linewidth=2, label=f"{args.label1} mean")
     ax.fill_between(
-        t1, lo1, hi1,
-        color=args.color1, alpha=0.2,
+        t1,
+        lo1,
+        hi1,
+        color=args.color1,
+        alpha=0.2,
         label=f"{args.label1} 95% CI",
     )
     ax.plot(t2, tp2, color=args.color2, linewidth=2, label=f"{args.label2} mean")
     ax.fill_between(
-        t2, lo2, hi2,
-        color=args.color2, alpha=0.2,
+        t2,
+        lo2,
+        hi2,
+        color=args.color2,
+        alpha=0.2,
         label=f"{args.label2} 95% CI",
     )
 
@@ -87,7 +93,7 @@ def main():
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
-    ax.set_title("Throughput comparison with 95% confidence interval")
+    ax.set_title("Throughput comparison with 95% confidence interval (CI)")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
