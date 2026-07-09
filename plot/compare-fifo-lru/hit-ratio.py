@@ -33,7 +33,7 @@ def load_csv(path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compare throughput of two averaged CSVs"
+        description="Compare hit ratio overtime of two averaged CSVs"
     )
     parser.add_argument("csv1", help="first avg CSV")
     parser.add_argument("csv2", help="second avg CSV")
@@ -46,16 +46,24 @@ def main():
     r2 = load_csv(args.csv2)
 
     t1 = [row["time_s"] for row in r1]
-    tp1 = [row["throughput"] for row in r1]
-    lo1 = [row.get("throughput_ci_lower", row["throughput"]) for row in r1]
-    hi1 = [row.get("throughput_ci_upper", row["throughput"]) for row in r1]
+    tp1 = [row["cache_hit_rate"] * 100 for row in r1]
+    lo1 = [
+        row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100 for row in r1
+    ]
+    hi1 = [
+        row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100 for row in r1
+    ]
 
     t2 = [row["time_s"] for row in r2]
-    tp2 = [row["throughput"] for row in r2]
-    lo2 = [row.get("throughput_ci_lower", row["throughput"]) for row in r2]
-    hi2 = [row.get("throughput_ci_upper", row["throughput"]) for row in r2]
+    tp2 = [row["cache_hit_rate"] * 100 for row in r2]
+    lo2 = [
+        row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100 for row in r2
+    ]
+    hi2 = [
+        row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100 for row in r2
+    ]
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    _, ax = plt.subplots(figsize=figsize_single)
 
     ax.plot(t1, tp1, color=exp1_color, linewidth=2, label=f"{args.label1} mean")
     ax.fill_between(
@@ -87,17 +95,17 @@ def main():
             ticks.pop(-2)
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
-    ax.set_ylim(bottom=0)
+    ax.set_ylim([0, 100])
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Throughput [txns/s]")
-    ax.set_title("Throughput comparison with 95% confidence interval (CI)")
+    ax.set_ylabel("Hit ratio [%]")
+    ax.set_title("Hit ratio")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
     label_text = f"{args.label1}-{args.label2}"
-    output = args.output or f"charts/compare-throughput-{label_text}.png"
+    output = args.output or f"charts/hit-ratio-{label_text}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.savefig(output, dpi=300, bbox_inches="tight")
 

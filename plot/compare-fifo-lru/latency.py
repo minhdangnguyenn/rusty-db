@@ -36,8 +36,6 @@ def main():
     parser.add_argument("csv2", help="second avg CSV")
     parser.add_argument("--label1", default="FIFO")
     parser.add_argument("--label2", default="LRU")
-    parser.add_argument("--color1", default=exp1_color)
-    parser.add_argument("--color2", default=exp2_color)
     parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
 
@@ -72,7 +70,7 @@ def main():
         yerr=a_err,
         capsize=3,
         label=args.label1,
-        color=args.color1,
+        color=exp1_color,
         zorder=2,
     )
     ax1.bar(
@@ -82,7 +80,7 @@ def main():
         yerr=b_err,
         capsize=3,
         label=args.label2,
-        color=args.color2,
+        color=exp2_color,
         zorder=2,
     )
     ax1.set_ylabel("Latency (ms)")
