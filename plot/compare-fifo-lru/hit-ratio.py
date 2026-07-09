@@ -65,7 +65,7 @@ def main():
 
     _, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot(t1, tp1, color=exp1_color, linewidth=2, label=f"{args.label1} mean")
+    ax.plot(t1, tp1, color=exp1_color, linewidth=2, marker="o", label=f"{args.label1} mean")
     ax.fill_between(
         t1,
         lo1,
@@ -74,7 +74,7 @@ def main():
         alpha=0.2,
         label=f"{args.label1} 95% CI",
     )
-    ax.plot(t2, tp2, color=exp2_color, linewidth=2, label=f"{args.label2} mean")
+    ax.plot(t2, tp2, color=exp2_color, linewidth=2, marker="o", label=f"{args.label2} mean")
     ax.fill_between(
         t2,
         lo2,
