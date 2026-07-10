@@ -10,12 +10,12 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use hdrhistogram::Histogram;
-use itertools::Itertools as _;
-use rand::RngExt as _;
-use rand::SeedableRng as _;
-use rand::distr::Distribution as _;
+use itertools::Itertools;
+use rand::RngExt;
+use rand::SeedableRng;
+use rand::distr::Distribution;
 use rand::rngs::StdRng;
-use rand::seq::SliceRandom as _;
+use rand::seq::SliceRandom;
 
 use toydb::error::Result;
 use toydb::log::{latency_stats, log_stats};
