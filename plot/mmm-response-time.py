@@ -13,6 +13,9 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
+# t-distribution table for 95% ci with small samples
+# key = degrees of freedom (n - 1), value = t-critical
+# n=5 runs -> df=4 -> t=3.182 (wider than z=1.96 for small samples)
 T_TABLE = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571}
 
 
@@ -51,8 +54,11 @@ def mean_ci(vals):
     return mean, mean - half, mean + half
 
 
-COMBOS = [("l", "uniform"), ("l", "zipf"), ("s", "uniform"), ("s", "zipf")]
-LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+# experiment combos: (size, distribution)
+EXPS = [("l", "uniform"), ("l", "zipf"), ("s", "uniform"), ("s", "zipf")]
+# concurrency levels to evaluate
+CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+# workers per level
 M = [4, 8, 16, 32, 64]
 
 
@@ -62,13 +68,13 @@ def data_dir_for(label, size, dist):
     return f"csv/cloud/exp3/{label}/{size}/{dist}"
 
 
-for size, dist in COMBOS:
+for size, dist in EXPS:
     all_S = []
     tps_means = []
     tps_lowers = []
     tps_uppers = []
 
-    for i, label in enumerate(LEVELS):
+    for i, label in enumerate(CC_LEVELS):
         data_dir = data_dir_for(label, size, dist)
         csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
         csvs = [
@@ -83,6 +89,7 @@ for size, dist in COMBOS:
         runs = [load_csv(f) for f in csvs]
         tps = [throughput_per_run(r) for r in runs]
 
+        # proposal: S = m / throughput, µ = 1 / S
         S_vals = [M[i] / tp for tp in tps]
         all_S.extend(S_vals)
 
@@ -91,22 +98,23 @@ for size, dist in COMBOS:
         tps_lowers.append(lo)
         tps_uppers.append(hi)
 
-    # µ = 1 / mean(S)  (proposal formula)
+    # µ = 1 / S̅ where S̅ is the mean service time across all runs
     S_mean = sum(all_S) / len(all_S)
     mu = 1.0 / S_mean
 
     n = len(M)
 
-    # Measured average response time via Little's law: R = m / throughput (ms)
+    # measured avg response time via little's law: r = m / throughput (ms)
     rt_means = [M[i] / tps_means[i] * 1000 for i in range(n)]
     rt_lowers = [M[i] / tps_uppers[i] * 1000 for i in range(n)]
     rt_uppers = [M[i] / tps_lowers[i] * 1000 for i in range(n)]
 
-    # M/M/m ideal response time = S̅  (service time, excludes queueing)
+    # m/m/m ideal: response time = 1/µ = S̅ (service time, no queue)
     rt_ideal = S_mean * 1000  # convert to ms
 
     fig, ax = plt.subplots(figsize=figsize_single)
 
+    # measured points
     ax.plot(
         M,
         rt_means,
@@ -116,6 +124,7 @@ for size, dist in COMBOS:
         markersize=8,
         label="Measured (Little's law: m / throughput)",
     )
+    # ci error bars
     ax.errorbar(
         M,
         rt_means,
@@ -129,6 +138,7 @@ for size, dist in COMBOS:
         capthick=1.5,
     )
 
+    # ideal horizontal line at service time
     ax.axhline(
         y=rt_ideal,
         linestyle="--",
