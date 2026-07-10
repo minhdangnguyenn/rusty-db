@@ -3,4 +3,4 @@ HOST_FLAG=""
 [ -n "${TOYDB_HOSTS:-}" ] && HOST_FLAG="-H $TOYDB_HOSTS"
 cargo run --release --bin workload -- $HOST_FLAG \
 --experiment exp3-c16-s-uniform \
--c 16 --id "$ID" read --rows 1000 --cache --cache-size 5000
+-c 16 --id "$ID" read --rows 1000 --cache
