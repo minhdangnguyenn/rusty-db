@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
+"exp3-c4-l-uniform",3,"read (rows=10000 size=64 batch=1 block=100 distr=uniform)","34.118.245.184:9601;35.246.243.182:9602;34.185.215.183:9603;34.89.240.24:9604;34.159.230.75:9605",4,100000,16791084677885396490,30.092,18113,601.921,10.100735,12.812287,15.540223,62.423039,7904,10209,0.436372,30.0
