@@ -46,12 +46,14 @@ for size in l s; do
     "$fifo_csv" "$lru_csv" \
     -o "charts/cloud/exp2/compare/${size}/latency/zipf.png"
 
-  $PYTHON plot/exp2/compare-hit-ratio.py \
+  $PYTHON plot/exp2/compare-metric.py \
     "$fifo_csv" "$lru_csv" \
+    --metric hit \
     -o "charts/cloud/exp2/compare/${size}/hit-miss-ratio/hit-ratio-${size}-zipf.png"
 
-  $PYTHON plot/exp2/compare-miss-ratio.py \
+  $PYTHON plot/exp2/compare-metric.py \
     "$fifo_csv" "$lru_csv" \
+    --metric miss \
     -o "charts/cloud/exp2/compare/${size}/hit-miss-ratio/miss-ratio-${size}-zipf.png"
 done
 

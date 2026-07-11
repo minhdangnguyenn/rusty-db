@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
@@ -15,12 +16,6 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
 
 CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 M = [4, 8, 16, 32, 64]
-
-
-def data_dir_for(label, size, dist):
-    if label == "c16":
-        return f"csv/cloud/exp1/cache/{dist}/{size}"
-    return f"csv/cloud/exp3/{label}/{size}/{dist}"
 
 
 if __name__ == "__main__":

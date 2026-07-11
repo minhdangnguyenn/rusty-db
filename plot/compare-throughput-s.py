@@ -1,5 +1,4 @@
 import argparse
-import glob
 import os
 import sys
 
@@ -7,6 +6,7 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
+    compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
     exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
@@ -14,33 +14,6 @@ from config import (
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-
-def compute_ci_from_dir(data_dir):
-    csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [f for f in csvs if "summary" not in os.path.basename(f)]
-    runs = [load_csv(f) for f in csvs]
-    if not runs:
-        return [], [], []
-    grid = {}
-    for run in runs:
-        for row in run:
-            t = round(row["time_s"])
-            grid.setdefault(t, []).append(row["throughput"])
-    times = sorted(grid.keys())
-    means, cis = [], []
-    for t in times:
-        vals = grid[t]
-        if len(vals) < 2:
-            means.append(vals[0])
-            cis.append(0.0)
-            continue
-        mean = sum(vals) / len(vals)
-        std = (sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
-        ci = 1.96 * std / (len(vals) ** 0.5)
-        means.append(mean)
-        cis.append(ci)
-    return times, means, cis
 
 
 def main():

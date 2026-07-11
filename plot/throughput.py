@@ -1,5 +1,4 @@
 import argparse
-import math
 import os
 import sys
 
@@ -9,7 +8,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 from config import (
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
@@ -18,6 +16,8 @@ def main():
     parser = argparse.ArgumentParser(description="Plot throughput over time")
     parser.add_argument("csv", help="path to CSV file")
     parser.add_argument("--label", default=None, help="legend label")
+    parser.add_argument("--color", default="#2196F3")
+    parser.add_argument("--marker", default="s")
     parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
 
@@ -27,43 +27,29 @@ def main():
     t = [r["time_s"] for r in data]
     tps = [r["throughput"] for r in data]
 
-    single = len(t) == 1
-    if single:
-        val = tps[0]
-        t, tps = [0, t[0]], [val, val]
-
     fig, ax = plt.subplots(figsize=figsize_single)
-    x_max = max(t)
-    markers = list(range(0, len(t), max(1, len(t) // 10)))
-    if markers[-1] != len(t) - 1:
-        markers.append(len(t) - 1)
-    # y_max = max(tps)
-    ax.plot(t, tps, marker="o", markevery=[-1] if single else markers, label=label)
+    ax.plot(t, tps, color=args.color, linewidth=2, marker=args.marker, label=label)
+    ax.fill_between(t, tps, color=args.color, alpha=0.1)
 
-    end_tick = math.ceil(x_max)
-    n_ticks = 10
-    step = max(1, end_tick // n_ticks)
-    ticks = list(range(0, end_tick + 1, step))
-    if ticks[-1] != x_max:
-        ticks[-1] = x_max
-        if len(ticks) >= 2 and x_max - ticks[-2] < 1.0:
-            ticks.pop(-2)
+    end_tick = 30
+    ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
-    ax.ticklabel_format(style="plain", axis="y")
-    ax.set_ylim(bottom=0)
+    y_max = max(tps) * 1.1 if tps else 1
+    ax.set_ylim([0, y_max])
+    ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
-    ax.set_title("Throughput over time")
-    ax.legend(**legend_pos)
+    ax.set_title("Throughput")
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
-    output = (
-        args.output
-        or f"charts/{os.path.splitext(os.path.basename(args.csv))[0]}-throughput.png"
-    )
-    os.makedirs("charts", exist_ok=True)
+    if args.output:
+        output = args.output
+    else:
+        base = os.path.splitext(os.path.basename(args.csv))[0]
+        output = f"charts/{base}-throughput.png"
+    os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.savefig(output, dpi=300, bbox_inches="tight")
 
 

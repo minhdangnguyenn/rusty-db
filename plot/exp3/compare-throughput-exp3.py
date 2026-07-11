@@ -1,4 +1,3 @@
-import glob
 import math
 import os
 import sys
@@ -7,42 +6,15 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
+    data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
-
-def compute_ci_from_dir(data_dir):
-    csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
-    ]
-    runs = [load_csv(f) for f in csvs]
-    if not runs:
-        return [], [], []
-    grid = {}
-    for run in runs:
-        for row in run:
-            t = round(row["time_s"])
-            grid.setdefault(t, []).append(row["throughput"])
-    times = sorted(grid.keys())
-    means, cis = [], []
-    for t in times:
-        vals = grid[t]
-        if len(vals) < 2:
-            continue
-        mean = sum(vals) / len(vals)
-        std = (sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
-        ci = 1.96 * std / (len(vals) ** 0.5)
-        means.append(mean)
-        cis.append(ci)
-    return times, means, cis
-
-
+CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]
 
 combos = [
@@ -53,13 +25,7 @@ combos = [
 ]
 
 for size, dist in combos:
-    levels = [
-        ("c4", f"csv/cloud/exp3/c4/{size}/{dist}"),
-        ("c8", f"csv/cloud/exp3/c8/{size}/{dist}"),
-        ("c16", f"csv/cloud/exp1/cache/{dist}/{size}"),
-        ("c32", f"csv/cloud/exp3/c32/{size}/{dist}"),
-        ("c64", f"csv/cloud/exp3/c64/{size}/{dist}"),
-    ]
+    levels = [(label, data_dir_for(label, size, dist)) for label in CC_LEVELS]
 
     fig, ax = plt.subplots(figsize=figsize_single)
     all_times = []

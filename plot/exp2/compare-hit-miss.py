@@ -17,39 +17,65 @@ from config import (
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compare miss ratio overtime of two averaged CSVs"
+        description="Compare hit or miss ratio of two averaged CSVs"
     )
     parser.add_argument("csv1", help="first avg CSV")
     parser.add_argument("csv2", help="second avg CSV")
     parser.add_argument("--label1", default="FIFO")
     parser.add_argument("--label2", default="LRU")
+    parser.add_argument("--metric", choices=["hit", "miss"], default="hit")
     parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
 
     r1 = load_csv(args.csv1)
     r2 = load_csv(args.csv2)
 
-    t1 = [row["time_s"] for row in r1]
-    tp1 = [(1 - row["cache_hit_rate"]) * 100 for row in r1]
-    lo1 = [
-        (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
-        for row in r1
-    ]
-    hi1 = [
-        (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
-        for row in r1
-    ]
-
-    t2 = [row["time_s"] for row in r2]
-    tp2 = [(1 - row["cache_hit_rate"]) * 100 for row in r2]
-    lo2 = [
-        (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
-        for row in r2
-    ]
-    hi2 = [
-        (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
-        for row in r2
-    ]
+    if args.metric == "miss":
+        ylabel = "Miss ratio [%]"
+        title = "Miss ratio"
+        t1 = [row["time_s"] for row in r1]
+        tp1 = [(1 - row["cache_hit_rate"]) * 100 for row in r1]
+        lo1 = [
+            (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
+            for row in r1
+        ]
+        hi1 = [
+            (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
+            for row in r1
+        ]
+        t2 = [row["time_s"] for row in r2]
+        tp2 = [(1 - row["cache_hit_rate"]) * 100 for row in r2]
+        lo2 = [
+            (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
+            for row in r2
+        ]
+        hi2 = [
+            (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
+            for row in r2
+        ]
+    else:
+        ylabel = "Hit ratio [%]"
+        title = "Hit ratio"
+        t1 = [row["time_s"] for row in r1]
+        tp1 = [row["cache_hit_rate"] * 100 for row in r1]
+        lo1 = [
+            row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100
+            for row in r1
+        ]
+        hi1 = [
+            row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100
+            for row in r1
+        ]
+        t2 = [row["time_s"] for row in r2]
+        tp2 = [row["cache_hit_rate"] * 100 for row in r2]
+        lo2 = [
+            row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100
+            for row in r2
+        ]
+        hi2 = [
+            row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100
+            for row in r2
+        ]
 
     _, ax = plt.subplots(figsize=figsize_single)
 
@@ -83,14 +109,14 @@ def main():
     ax.set_ylim([0, 100])
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Miss ratio [%]")
-    ax.set_title("Miss ratio")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
     label_text = f"{args.label1}-{args.label2}"
-    output = args.output or f"charts/miss-ratio-{label_text}.png"
+    output = args.output or f"charts/{args.metric}-ratio-{label_text}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.savefig(output, dpi=300, bbox_inches="tight")
 

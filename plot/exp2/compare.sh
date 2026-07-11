@@ -53,12 +53,14 @@ for dist in zipf uniform; do
       "$fifo_csv" "$lru_csv" \
       -o "charts/cloud/exp2/compare/${size}/latency/${dist}.png"
 
-    $PYTHON plot/exp2/compare-hit-ratio.py \
+    $PYTHON plot/exp2/compare-metric.py \
       "$fifo_csv" "$lru_csv" \
+      --metric hit \
       -o "charts/cloud/exp2/compare/${size}/hit-miss-ratio/hit-ratio-${size}-${dist}.png"
 
-    $PYTHON plot/exp2/compare-miss-ratio.py \
+    $PYTHON plot/exp2/compare-metric.py \
       "$fifo_csv" "$lru_csv" \
+      --metric miss \
       -o "charts/cloud/exp2/compare/${size}/hit-miss-ratio/miss-ratio-${size}-${dist}.png"
   done
 done
