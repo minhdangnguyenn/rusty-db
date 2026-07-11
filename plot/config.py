@@ -7,7 +7,7 @@ p99_color = "#F44336"
 max_color = "#9C27B0"
 
 exp1_color = "#2196F3"
-exp2_color = "#FF5722"
+exp2_color = "#F44336"
 
 legend_pos = {"loc": "upper left", "bbox_to_anchor": (1.02, 1)}
 

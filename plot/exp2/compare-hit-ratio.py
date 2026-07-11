@@ -18,7 +18,7 @@ from config import (
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compare throughput of two averaged CSVs"
+        description="Compare hit ratio overtime of two averaged CSVs"
     )
     parser.add_argument("csv1", help="first avg CSV")
     parser.add_argument("csv2", help="second avg CSV")
@@ -31,32 +31,44 @@ def main():
     r2 = load_csv(args.csv2)
 
     t1 = [row["time_s"] for row in r1]
-    tp1 = [row["throughput"] for row in r1]
-    lo1 = [row.get("throughput_ci_lower", row["throughput"]) for row in r1]
-    hi1 = [row.get("throughput_ci_upper", row["throughput"]) for row in r1]
+    tp1 = [row["cache_hit_rate"] * 100 for row in r1]
+    lo1 = [
+        row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100 for row in r1
+    ]
+    hi1 = [
+        row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100 for row in r1
+    ]
 
     t2 = [row["time_s"] for row in r2]
-    tp2 = [row["throughput"] for row in r2]
-    lo2 = [row.get("throughput_ci_lower", row["throughput"]) for row in r2]
-    hi2 = [row.get("throughput_ci_upper", row["throughput"]) for row in r2]
+    tp2 = [row["cache_hit_rate"] * 100 for row in r2]
+    lo2 = [
+        row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100 for row in r2
+    ]
+    hi2 = [
+        row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100 for row in r2
+    ]
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    _, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot(t1, tp1, color=exp1_color, linewidth=2, marker="o", label=f"{args.label1} mean")
+    ax.plot(
+        t1, tp1, color=exp2_color, linewidth=2, marker="s", label=f"{args.label1} mean"
+    )
     ax.fill_between(
         t1,
         lo1,
         hi1,
-        color=exp1_color,
+        color=exp2_color,
         alpha=0.2,
         label=f"{args.label1} 95% CI",
     )
-    ax.plot(t2, tp2, color=exp2_color, linewidth=2, marker="o", label=f"{args.label2} mean")
+    ax.plot(
+        t2, tp2, color=exp1_color, linewidth=2, marker="^", label=f"{args.label2} mean"
+    )
     ax.fill_between(
         t2,
         lo2,
         hi2,
-        color=exp2_color,
+        color=exp1_color,
         alpha=0.2,
         label=f"{args.label2} 95% CI",
     )
@@ -65,19 +77,17 @@ def main():
     ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
-    all_vals = tp1 + tp2 + lo1 + lo2 + hi1 + hi2
-    y_max = max(all_vals) if all_vals else 1
-    ax.set_ylim([0, y_max])
+    ax.set_ylim([0, 100])
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Throughput [txns/s]")
-    ax.set_title("Throughput comparison with 95% confidence interval (CI)")
+    ax.set_ylabel("Hit ratio [%]")
+    ax.set_title("Hit ratio")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
     label_text = f"{args.label1}-{args.label2}"
-    output = args.output or f"charts/compare-throughput-{label_text}.png"
+    output = args.output or f"charts/hit-ratio-{label_text}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.savefig(output, dpi=300, bbox_inches="tight")
 

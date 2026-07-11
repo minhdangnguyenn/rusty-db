@@ -38,19 +38,19 @@ for size in l s; do
     mkdir -p "charts/cloud/exp2/compare/${size}/${dir}"
   done
 
-  $PYTHON plot/compare-fifo-lru/throughput.py \
+  $PYTHON plot/exp2/compare-throughput.py \
     "$fifo_csv" "$lru_csv" \
     -o "charts/cloud/exp2/compare/${size}/throughput/zipf.png"
 
-  $PYTHON plot/compare-fifo-lru/latency.py \
+  $PYTHON plot/exp2/compare-latency.py \
     "$fifo_csv" "$lru_csv" \
     -o "charts/cloud/exp2/compare/${size}/latency/zipf.png"
 
-  $PYTHON plot/compare-fifo-lru/hit-ratio.py \
+  $PYTHON plot/exp2/compare-hit-ratio.py \
     "$fifo_csv" "$lru_csv" \
     -o "charts/cloud/exp2/compare/${size}/hit-miss-ratio/hit-ratio-${size}-zipf.png"
 
-  $PYTHON plot/compare-fifo-lru/miss-ratio.py \
+  $PYTHON plot/exp2/compare-miss-ratio.py \
     "$fifo_csv" "$lru_csv" \
     -o "charts/cloud/exp2/compare/${size}/hit-miss-ratio/miss-ratio-${size}-zipf.png"
 done
