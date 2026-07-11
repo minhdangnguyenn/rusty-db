@@ -23,8 +23,6 @@ def main():
     parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
 
-    label = args.label if args.label else os.path.basename(args.csv)
-
     data = load_csv(args.csv)
     t = [r["time_s"] for r in data]
     hit_rate = [r["cache_hit_rate"] * 100 for r in data]
