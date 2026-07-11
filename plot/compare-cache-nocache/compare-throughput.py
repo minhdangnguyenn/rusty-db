@@ -19,7 +19,11 @@ from config import (
 
 def compute_ci_from_dir(data_dir):
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [f for f in csvs if "summary" not in os.path.basename(f)]
+    csvs = [
+        f
+        for f in csvs
+        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
+    ]
     runs = [load_csv(f) for f in csvs]
     if not runs:
         return [], [], []
