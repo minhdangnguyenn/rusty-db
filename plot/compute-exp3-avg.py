@@ -13,7 +13,7 @@ CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 
 def data_dir_for(label, size, dist):
     if label == "c16":
-        return f"csv/cloud/exp1/cache/{dist}/{size}"
+        return f"csv/cloud/exp1/cache/{size}/{dist}"
     return f"csv/cloud/exp3/{label}/{size}/{dist}"
 
 

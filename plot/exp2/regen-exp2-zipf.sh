@@ -15,7 +15,7 @@ for size in l s; do
 done
 
 for size in l s; do
-  dir="csv/cloud/exp1/cache/zipf/${size}"
+  dir="csv/cloud/exp1/cache/${size}/zipf"
   if [ -d "$dir" ]; then
     echo "  LRU (cache) ${size}/zipf..."
     $PYTHON plot/compute-mean.py "$dir" -o "${dir}/avg.csv"
@@ -27,7 +27,7 @@ echo "=== Plot compare FIFO vs LRU ==="
 for size in l s; do
   echo "--- ${size}/zipf ---"
   fifo_csv="csv/cloud/exp2/fifo/${size}/zipf/avg.csv"
-  lru_csv="csv/cloud/exp1/cache/zipf/${size}/avg.csv"
+  lru_csv="csv/cloud/exp1/cache/${size}/zipf/avg.csv"
 
   if [ ! -f "$fifo_csv" ] || [ ! -f "$lru_csv" ]; then
     echo "  Skip: missing avg CSVs for ${size}"

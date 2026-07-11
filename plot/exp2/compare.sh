@@ -20,7 +20,7 @@ done
 
 for dist in zipf uniform; do
   for size in l s; do
-    dir="csv/cloud/exp1/cache/${dist}/${size}"
+    dir="csv/cloud/exp1/cache/${size}/${dist}"
     if [ -d "$dir" ]; then
       echo "  LRU (cache) ${size}/${dist}..."
       $PYTHON plot/compute-mean.py "$dir" -o "${dir}/avg.csv"
@@ -34,7 +34,7 @@ for dist in zipf uniform; do
   for size in l s; do
     echo "--- ${size}/${dist} ---"
     fifo_csv="csv/cloud/exp2/fifo/${size}/${dist}/avg.csv"
-    lru_csv="csv/cloud/exp1/cache/${dist}/${size}/avg.csv"
+    lru_csv="csv/cloud/exp1/cache/${size}/${dist}/avg.csv"
 
     if [ ! -f "$fifo_csv" ] || [ ! -f "$lru_csv" ]; then
       echo "  Skip: missing avg CSVs for ${size}/${dist}"
