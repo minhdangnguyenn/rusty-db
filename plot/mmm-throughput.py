@@ -54,103 +54,104 @@ def mean_ci(vals):
     return mean, mean - half, mean + half
 
 
-# experiment combos: (size, distribution)
-EXPS = [("l", "uniform"), ("l", "zipf"), ("s", "uniform"), ("s", "zipf")]
-# concurrency levels to evaluate
-CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
-M = [4, 8, 16, 32, 64]
-
-
 def data_dir_for(label, size, dist):
     if label == "c16":
         return f"csv/cloud/exp1/cache/{dist}/{size}"
     return f"csv/cloud/exp3/{label}/{size}/{dist}"
 
 
-for size, dist in EXPS:
-    all_S = []
-    means = []
-    ci_lowers = []
-    ci_uppers = []
+if __name__ == "__main__":
+    # experiment combos: (size, distribution)
+    EXPS = [("l", "uniform"), ("l", "zipf"), ("s", "uniform"), ("s", "zipf")]
+    # concurrency levels to evaluate
+    CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+    M = [4, 8, 16, 32, 64]
 
-    for i, label in enumerate(CC_LEVELS):
-        data_dir = data_dir_for(label, size, dist)
-        csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-        csvs = [
-            f
-            for f in csvs
-            if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
-        ]
-        if not csvs:
-            print(f"Warning: no CSVs in {data_dir}")
-            continue
+    for size, dist in EXPS:
+        all_S = []
+        means = []
+        ci_lowers = []
+        ci_uppers = []
 
-        runs = [load_csv(f) for f in csvs]
-        tps = [throughput_per_run(r) for r in runs]
+        for i, label in enumerate(CC_LEVELS):
+            data_dir = data_dir_for(label, size, dist)
+            csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
+            csvs = [
+                f
+                for f in csvs
+                if "summary" not in os.path.basename(f)
+                and "avg" not in os.path.basename(f)
+            ]
+            if not csvs:
+                print(f"Warning: no CSVs in {data_dir}")
+                continue
 
-        # proposal: S = m / throughput, µ = 1 / S
-        S_vals = [M[i] / tp for tp in tps]
-        all_S.extend(S_vals)
+            runs = [load_csv(f) for f in csvs]
+            tps = [throughput_per_run(r) for r in runs]
 
-        m, lo, hi = mean_ci(tps)
-        means.append(m)
-        ci_lowers.append(lo)
-        ci_uppers.append(hi)
+            # proposal: S = m / throughput, µ = 1 / S
+            S_vals = [M[i] / tp for tp in tps]
+            all_S.extend(S_vals)
 
-    # µ = 1 / S̅ where S̅ is the mean service time across all runs
-    S_mean = sum(all_S) / len(all_S)
-    mu = 1.0 / S_mean
+            m, lo, hi = mean_ci(tps)
+            means.append(m)
+            ci_lowers.append(lo)
+            ci_uppers.append(hi)
 
-    n = len(M)
-    fig, ax = plt.subplots(figsize=figsize_single)
+        # µ = 1 / S̅ where S̅ is the mean service time across all runs
+        S_mean = sum(all_S) / len(all_S)
+        mu = 1.0 / S_mean
 
-    # measured mean throughput with ci bars
-    ax.plot(
-        M,
-        means,
-        color="#e41a1c",
-        linewidth=1.5,
-        marker="o",
-        markersize=8,
-        label="Measured ± 95% CI",
-    )
-    ax.errorbar(
-        M,
-        means,
-        yerr=[
-            [means[i] - ci_lowers[i] for i in range(n)],
-            [ci_uppers[i] - means[i] for i in range(n)],
-        ],
-        fmt="none",
-        color="#e41a1c",
-        capsize=4,
-        capthick=1.5,
-    )
+        n = len(M)
+        fig, ax = plt.subplots(figsize=figsize_single)
 
-    # m/m/m ideal: throughput = µ · m
-    ax.plot(
-        [0, max(M) * 1.05],
-        [0, mu * max(M) * 1.05],
-        linestyle="--",
-        color="#377eb8",
-        linewidth=2,
-        label=f"μ = 1 / S̅ = {mu:.1f} (M/M/m, throughput = μ · m)",
-    )
+        # measured mean throughput with ci bars
+        ax.plot(
+            M,
+            means,
+            color="#e41a1c",
+            linewidth=1.5,
+            marker="o",
+            markersize=8,
+            label="Measured ± 95% CI",
+        )
+        ax.errorbar(
+            M,
+            means,
+            yerr=[
+                [means[i] - ci_lowers[i] for i in range(n)],
+                [ci_uppers[i] - means[i] for i in range(n)],
+            ],
+            fmt="none",
+            color="#e41a1c",
+            capsize=4,
+            capthick=1.5,
+        )
 
-    ax.set_xlabel("Number of workers (m)")
-    ax.set_ylabel("Throughput [txns/s]")
-    ax.set_title(f"M/M/m model fit (exp3, {size}, {dist})")
-    ax.set_xticks(M)
-    ax.set_xlim(left=0)
-    ax.set_ylim(bottom=0)
-    ax.ticklabel_format(axis="y", style="plain", useOffset=False)
-    ax.legend(**legend_pos)
-    ax.grid(True, **grid_style)
-    plt.tight_layout()
+        # m/m/m ideal: throughput = µ · m
+        ax.plot(
+            [0, max(M) * 1.05],
+            [0, mu * max(M) * 1.05],
+            linestyle="--",
+            color="#377eb8",
+            linewidth=2,
+            label=f"μ = 1 / S̅ = {mu:.1f} (M/M/m, throughput = μ · m)",
+        )
 
-    out_dir = f"charts/cloud/exp3/{size}/{dist}"
-    os.makedirs(out_dir, exist_ok=True)
-    out_path = f"{out_dir}/mmm-throughput.png"
-    plt.savefig(out_path, dpi=300, bbox_inches="tight")
-    print(f"Saved to {out_path}")
-    plt.close(fig)
+        ax.set_xlabel("Number of workers (m)")
+        ax.set_ylabel("Throughput [txns/s]")
+        ax.set_title(f"M/M/m model fit (exp3, {size}, {dist})")
+        ax.set_xticks(M)
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+        ax.ticklabel_format(axis="y", style="plain", useOffset=False)
+        ax.legend(**legend_pos)
+        ax.grid(True, **grid_style)
+        plt.tight_layout()
+
+        out_dir = f"charts/cloud/exp3/{size}/{dist}"
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = f"{out_dir}/mmm-throughput.png"
+        plt.savefig(out_path, dpi=300, bbox_inches="tight")
+        print(f"Saved to {out_path}")
+        plt.close(fig)
