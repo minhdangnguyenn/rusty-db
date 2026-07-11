@@ -496,7 +496,7 @@ impl Iterator for BlockGen {
             if use_zipf && len > 1 {
                 let dist = Zipf::new(len as f64, skew).unwrap();
                 let val: f64 = dist.sample(rng);
-                val as usize
+                (val - 1.0) as usize
             } else {
                 rng.random_range(0..len)
             }
