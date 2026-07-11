@@ -3,10 +3,13 @@ import csv
 import os
 import sys
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import figsize_single, grid_style
+from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
+    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+)
 
 
 def main():
@@ -27,7 +30,9 @@ def main():
     tp = [row["throughput"] for row in rows]
 
     fig, ax = plt.subplots(figsize=figsize_single)
-    ax.plot(t, tp, color=args.color, linewidth=2, marker=args.marker, label="Throughput")
+    ax.plot(
+        t, tp, color=args.color, linewidth=2, marker=args.marker, label="Throughput"
+    )
     ax.fill_between(t, tp, color=args.color, alpha=0.1)
 
     end_tick = 30
