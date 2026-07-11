@@ -59,7 +59,7 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot(times, means, color=exp1_color, linewidth=2, label="Mean")
+    ax.plot(times, means, color=exp1_color, linewidth=2, marker="o", label="Mean")
     ax.fill_between(
         times,
         [m - c for m, c in zip(means, cis)],
@@ -69,17 +69,12 @@ def main():
         label="95% confidence interval",
     )
 
-    end_tick = math.ceil(max(times))
-    n_ticks = 10
-    step = max(1, end_tick // n_ticks)
-    ticks = list(range(0, end_tick + 1, step))
-    if ticks[-1] != max(times):
-        ticks[-1] = max(times)
-        if len(ticks) >= 2 and max(times) - ticks[-2] < 1.0:
-            ticks.pop(-2)
+    end_tick = 30
+    ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
-    ax.set_ylim(bottom=0)
+    y_max = max([a + b for a, b in zip(means, cis)]) if means else 1
+    ax.set_ylim([0, y_max])
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

@@ -77,15 +77,8 @@ def main():
         label=f"{args.label2} 95% CI",
     )
 
-    all_t = sorted(set(t1 + t2))
-    end_tick = math.ceil(max(all_t))
-    n_ticks = 10
-    step = max(1, end_tick // n_ticks)
-    ticks = list(range(0, end_tick + 1, step))
-    if ticks[-1] != end_tick:
-        ticks[-1] = end_tick
-        if len(ticks) >= 2 and end_tick - ticks[-2] < 1.0:
-            ticks.pop(-2)
+    end_tick = 30
+    ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
     ax.set_ylim([0, 100])

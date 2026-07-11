@@ -13,7 +13,7 @@ legend_pos = {"loc": "upper left", "bbox_to_anchor": (1.02, 1)}
 
 grid_style = {"linestyle": "--", "alpha": 0.3}
 
-figsize_single = (15, 5)
+figsize_single = (12, 5)
 
 # t-distribution table for 95% ci with small samples
 # key = degrees of freedom (n - 1), value = t-critical

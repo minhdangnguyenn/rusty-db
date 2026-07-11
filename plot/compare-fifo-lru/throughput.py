@@ -42,7 +42,7 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot(t1, tp1, color=exp1_color, linewidth=2, label=f"{args.label1} mean")
+    ax.plot(t1, tp1, color=exp1_color, linewidth=2, marker="o", label=f"{args.label1} mean")
     ax.fill_between(
         t1,
         lo1,
@@ -51,7 +51,7 @@ def main():
         alpha=0.2,
         label=f"{args.label1} 95% CI",
     )
-    ax.plot(t2, tp2, color=exp2_color, linewidth=2, label=f"{args.label2} mean")
+    ax.plot(t2, tp2, color=exp2_color, linewidth=2, marker="o", label=f"{args.label2} mean")
     ax.fill_between(
         t2,
         lo2,
@@ -61,18 +61,13 @@ def main():
         label=f"{args.label2} 95% CI",
     )
 
-    all_t = sorted(set(t1 + t2))
-    end_tick = math.ceil(max(all_t))
-    n_ticks = 10
-    step = max(1, end_tick // n_ticks)
-    ticks = list(range(0, end_tick + 1, step))
-    if ticks[-1] != end_tick:
-        ticks[-1] = end_tick
-        if len(ticks) >= 2 and end_tick - ticks[-2] < 1.0:
-            ticks.pop(-2)
+    end_tick = 30
+    ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])
-    ax.set_ylim(bottom=0)
+    all_vals = tp1 + tp2 + lo1 + lo2 + hi1 + hi2
+    y_max = max(all_vals) if all_vals else 1
+    ax.set_ylim([0, y_max])
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

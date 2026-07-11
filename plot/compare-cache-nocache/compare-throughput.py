@@ -57,10 +57,8 @@ def main():
     t2, m2, c2 = compute_ci_from_dir(args.dir2)
 
     fig, ax = plt.subplots(figsize=figsize_single)
-    max_t = 0
     if t1:
-        max_t = max(max_t, max(t1))
-        ax.plot(t1, m1, color=exp1_color, linewidth=2, label=args.label1)
+        ax.plot(t1, m1, color=exp1_color, linewidth=2, marker="o", label=args.label1)
         ax.fill_between(
             t1,
             [a - b for a, b in zip(m1, c1)],
@@ -70,8 +68,7 @@ def main():
             label=f"{args.label1} 95% CI",
         )
     if t2:
-        max_t = max(max_t, max(t2))
-        ax.plot(t2, m2, color=exp2_color, linewidth=2, label=args.label2)
+        ax.plot(t2, m2, color=exp2_color, linewidth=2, marker="o", label=args.label2)
         ax.fill_between(
             t2,
             [a - b for a, b in zip(m2, c2)],
@@ -81,15 +78,15 @@ def main():
             label=f"{args.label2} 95% CI",
         )
 
-    n_ticks = 10
-    step = max(1, int(max_t / n_ticks))
-    ticks = list(range(0, int(max_t) + 1, step))
-    if ticks[-1] != int(max_t):
-        ticks.append(int(max_t))
+    end_tick = 30
+    ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim(left=0, right=max_t + 1)
+    ax.set_xlim(left=0, right=end_tick + 1)
 
-    ax.set_ylim(bottom=0)
+    all_means = (m1 or []) + (m2 or [])
+    all_cis = (c1 or []) + (c2 or [])
+    y_max = max([a + b for a, b in zip(all_means, all_cis)]) if all_means else 1
+    ax.set_ylim([0, y_max])
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
 
     ax.set_xlabel("Time [s]")
