@@ -51,7 +51,7 @@ def main():
     data_dir = args.dir
 
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [f for f in csvs if "summary" not in os.path.basename(f)]
+    csvs = [f for f in csvs if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)]
     print(f"Found {len(csvs)} CSV files")
 
     runs = [load_csv(f) for f in csvs]
@@ -59,7 +59,7 @@ def main():
 
     fig, ax = plt.subplots(figsize=figsize_single)
 
-    ax.plot(times, means, color=exp1_color, linewidth=2, marker="o", label="Mean")
+    ax.plot(times, means, color=exp1_color, linewidth=2, marker="s", label="Mean")
     ax.fill_between(
         times,
         [m - c for m, c in zip(means, cis)],

@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
-"exp1-cache-s-zipf",3,"read (rows=1000 size=64 batch=1 block=100 distr=zipf)","34.89.223.92:9601;34.159.202.132:9602;35.198.111.154:9603;35.198.168.161:9604;34.89.140.40:9605",16,100000,16791084677885396490,30.168,19667620,651938.446,0.001023,0.079359,0.147455,36.536319,19666581,1039,0.999947,30.0
