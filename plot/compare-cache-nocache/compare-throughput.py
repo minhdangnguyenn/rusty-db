@@ -4,6 +4,7 @@ import os
 import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+from matplotlib.ticker import MaxNLocator  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -88,6 +89,18 @@ def main():
         ticks.append(int(max_t))
     ax.set_xticks(ticks)
     ax.set_xlim(left=0, right=max_t + 1)
+    all_vals = []
+    if m1:
+        all_vals.extend(m1)
+    if m2:
+        all_vals.extend(m2)
+    if all_vals:
+        loc = MaxNLocator(nbins=5)
+        yticks = loc.tick_values(0, max(all_vals))
+        step = yticks[1] - yticks[0] if len(yticks) > 1 else 1
+        top = yticks[-1] + step
+    else:
+        top = None
     ax.set_ylim(bottom=0)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
 
