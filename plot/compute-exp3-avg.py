@@ -8,7 +8,7 @@ from config import load_csv, mean_ci  # pyright: ignore[reportAttributeAccessIss
 
 NUMERIC_COLS = ["throughput", "txns"]
 
-LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 
 
 def data_dir_for(label, size, dist):
@@ -21,7 +21,7 @@ for size in ["l", "s"]:
     for dist in ["uniform", "zipf"]:
         grid = {}
 
-        for label in LEVELS:
+        for label in CC_LEVELS:
             data_dir = data_dir_for(label, size, dist)
 
             if not os.path.isdir(data_dir):
@@ -54,7 +54,7 @@ for size in ["l", "s"]:
 
         fieldnames = ["time_s"]
         for col in NUMERIC_COLS:
-            for label in LEVELS:
+            for label in CC_LEVELS:
                 fieldnames.append(f"{col}_{label}")
                 fieldnames.append(f"{col}_{label}_ci_lower")
                 fieldnames.append(f"{col}_{label}_ci_upper")
@@ -63,7 +63,7 @@ for size in ["l", "s"]:
         for t in sorted(grid.keys()):
             row = {"time_s": t}
             for col in NUMERIC_COLS:
-                for label in LEVELS:
+                for label in CC_LEVELS:
                     key = f"{col}_{label}"
                     vals = grid[t].get(key, [])
                     if len(vals) < 1:

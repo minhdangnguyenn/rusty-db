@@ -6,13 +6,11 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
-    T_TABLE,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
-    t_critical,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 
