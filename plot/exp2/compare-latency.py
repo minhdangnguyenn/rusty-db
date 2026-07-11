@@ -34,15 +34,19 @@ def main():
     keys = ["p50_ms", "p90_ms", "p99_ms", "max"]
 
     a_data = [last1[k] for k in keys]
-    a_err = np.array([
-        [last1[k] - max(0, last1.get(f"{k}_ci_lower", 0)) for k in keys],
-        [last1.get(f"{k}_ci_upper", last1[k]) - last1[k] for k in keys],
-    ])
+    a_err = np.array(
+        [
+            [last1[k] - max(0, last1.get(f"{k}_ci_lower", 0)) for k in keys],
+            [last1.get(f"{k}_ci_upper", last1[k]) - last1[k] for k in keys],
+        ]
+    )
     b_data = [last2[k] for k in keys]
-    b_err = np.array([
-        [last2[k] - max(0, last2.get(f"{k}_ci_lower", 0)) for k in keys],
-        [last2.get(f"{k}_ci_upper", last2[k]) - last2[k] for k in keys],
-    ])
+    b_err = np.array(
+        [
+            [last2[k] - max(0, last2.get(f"{k}_ci_lower", 0)) for k in keys],
+            [last2.get(f"{k}_ci_upper", last2[k]) - last2[k] for k in keys],
+        ]
+    )
     diff = [a - b for a, b in zip(a_data, b_data)]
     diff_colors = ["#2a7d4f" if v < 0 else "#b94040" for v in diff]
 
