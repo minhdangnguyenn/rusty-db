@@ -1,8 +1,11 @@
 import argparse
 import csv
 import glob
-import math
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+from config import load_csv, mean_ci, t_critical  # pyright: ignore[reportAttributeAccessIssue]
 
 NUMERIC_COLS = [
     "progress",
@@ -19,49 +22,6 @@ NUMERIC_COLS = [
 CI_COLS = [f"{col}_ci_lower" for col in NUMERIC_COLS] + [
     f"{col}_ci_upper" for col in NUMERIC_COLS
 ]
-
-
-T_TABLE = {
-    2: 12.706,
-    3: 4.303,
-    4: 3.182,
-    5: 2.776,
-    6: 2.571,
-    7: 2.447,
-    8: 2.365,
-    9: 2.306,
-    10: 2.262,
-}
-
-
-def t_critical(n):
-    return T_TABLE.get(n, 1.96)
-
-
-def mean_ci(vals):
-    n = len(vals)
-    mean = sum(vals) / n
-    if n < 2:
-        return mean, mean, mean
-    var = sum((v - mean) ** 2 for v in vals) / (n - 1)
-    std = math.sqrt(var)
-    half = t_critical(n) * std / math.sqrt(n)
-    return mean, mean - half, mean + half
-
-
-def load_csv(path):
-    rows = []
-    with open(path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            parsed = {}
-            for k, v in row.items():
-                try:
-                    parsed[k] = float(v)
-                except ValueError:
-                    parsed[k] = v
-            rows.append(parsed)
-    return rows
 
 
 def main():

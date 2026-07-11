@@ -1,5 +1,4 @@
 import argparse
-import csv
 import glob
 import os
 import sys
@@ -10,26 +9,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 from config import (
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     max_color,  # pyright: ignore[reportAttributeAccessIssue]
     p50_color,  # pyright: ignore[reportAttributeAccessIssue]
     p90_color,  # pyright: ignore[reportAttributeAccessIssue]
     p99_color,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-
-def load_csv(path):
-    rows = []
-    with open(path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            parsed = {}
-            for k, v in row.items():
-                try:
-                    parsed[k] = float(v)
-                except ValueError:
-                    parsed[k] = v
-            rows.append(parsed)
-    return rows
 
 
 def compute_ci(vals):

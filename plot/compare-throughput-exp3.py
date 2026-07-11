@@ -1,4 +1,3 @@
-import csv
 import glob
 import math
 import os
@@ -11,22 +10,8 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-
-def load_csv(path):
-    rows = []
-    with open(path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            parsed = {}
-            for k, v in row.items():
-                try:
-                    parsed[k] = float(v)
-                except ValueError:
-                    parsed[k] = v
-            rows.append(parsed)
-    return rows
 
 
 def compute_ci_from_dir(data_dir):

@@ -1,41 +1,12 @@
 import csv
 import glob
-import math
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+from config import load_csv, mean_ci  # pyright: ignore[reportAttributeAccessIssue]
 
 NUMERIC_COLS = ["throughput", "txns"]
-T_TABLE = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571}
-
-
-def t_critical(n):
-    return T_TABLE.get(n, 1.96)
-
-
-def load_csv(path):
-    rows = []
-    with open(path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            parsed = {}
-            for k, v in row.items():
-                try:
-                    parsed[k] = float(v)
-                except ValueError:
-                    parsed[k] = v
-            rows.append(parsed)
-    return rows
-
-
-def mean_ci(vals):
-    n = len(vals)
-    mean = sum(vals) / n
-    if n < 2:
-        return mean, mean, mean
-    var = sum((v - mean) ** 2 for v in vals) / (n - 1)
-    std = math.sqrt(var)
-    half = t_critical(n) * std / math.sqrt(n)
-    return mean, mean - half, mean + half
-
 
 LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 
@@ -58,7 +29,12 @@ for size in ["l", "s"]:
                 continue
 
             csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-            csvs = [f for f in csvs if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)]
+            csvs = [
+                f
+                for f in csvs
+                if "summary" not in os.path.basename(f)
+                and "avg" not in os.path.basename(f)
+            ]
             if not csvs:
                 print(f"  Warning: no CSVs in {data_dir}")
                 continue
@@ -73,7 +49,7 @@ for size in ["l", "s"]:
                         grid[t].setdefault(f"{col}_{label}", []).append(row[col])
 
         if not grid:
-            print(f"  No data for {size}/{dist}, skipping.")
+            print(f"No data for {size}/{dist}, skipping.")
             continue
 
         fieldnames = ["time_s"]

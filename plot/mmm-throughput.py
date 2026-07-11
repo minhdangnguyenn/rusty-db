@@ -1,6 +1,4 @@
-import csv
 import glob
-import math
 import os
 import sys
 
@@ -8,50 +6,19 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    T_TABLE,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+    mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
+    t_critical,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-# t-distribution table for 95% ci with small samples
-# key = degrees of freedom (n - 1), value = t-critical
-# n=5 runs -> df=4 -> t=3.182 (wider than z=1.96 for small samples)
-T_TABLE = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571}
-
-
-def t_critical(n):
-    return T_TABLE.get(n, 1.96)
-
-
-def load_csv(path):
-    rows = []
-    with open(path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            parsed = {}
-            for k, v in row.items():
-                try:
-                    parsed[k] = float(v)
-                except ValueError:
-                    parsed[k] = v
-            rows.append(parsed)
-    return rows
 
 
 def throughput_per_run(data):
     last = data[-1]
     return last["txns"] / last["time_s"]
-
-
-def mean_ci(vals):
-    n = len(vals)
-    mean = sum(vals) / n
-    if n < 2:
-        return mean, mean, mean
-    var = sum((v - mean) ** 2 for v in vals) / (n - 1)
-    std = math.sqrt(var)
-    half = t_critical(n) * std / math.sqrt(n)
-    return mean, mean - half, mean + half
 
 
 def data_dir_for(label, size, dist):
