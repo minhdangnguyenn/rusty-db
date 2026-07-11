@@ -12,4 +12,4 @@ done
 gcloud compute instances stop "$PREFIX-node-1" "$PREFIX-node-2" "$PREFIX-node-3" "$PREFIX-node-4" "$PREFIX-node-5" \
   --zone "$ZONE"
 
-echo "=== Done ===
+echo "=== Done ==="
