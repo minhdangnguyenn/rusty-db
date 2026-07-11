@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 PYTHON="plot/.venv/bin/python"
 
-echo "=== Step 1: Generate avg CSVs ==="
+echo "=== Generate avg CSVs ==="
 
 for size in l s; do
   dir="csv/cloud/exp2/fifo/${size}/zipf"
@@ -22,7 +22,7 @@ for size in l s; do
   fi
 done
 
-echo "=== Step 2: Plot compare FIFO vs LRU ==="
+echo "=== Plot compare FIFO vs LRU ==="
 
 for size in l s; do
   echo "--- ${size}/zipf ---"

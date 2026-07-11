@@ -4,7 +4,7 @@ import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
@@ -19,7 +19,7 @@ def throughput_per_run(data):
     return last["txns"] / last["time_s"]
 
 
-def data_dir_for(label, size, dist):
+def data_dir_for(label, size, dist) -> str:
     if label == "c16":
         return f"csv/cloud/exp1/cache/{dist}/{size}"
     return f"csv/cloud/exp3/{label}/{size}/{dist}"
@@ -30,13 +30,14 @@ if __name__ == "__main__":
     EXPS = [("l", "uniform"), ("l", "zipf"), ("s", "uniform"), ("s", "zipf")]
     # concurrency levels to evaluate
     CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+    # workers per level
     M = [4, 8, 16, 32, 64]
 
     for size, dist in EXPS:
         all_S = []
-        means = []
-        ci_lowers = []
-        ci_uppers = []
+        tps_means = []
+        tps_lowers = []
+        tps_uppers = []
 
         for i, label in enumerate(CC_LEVELS):
             data_dir = data_dir_for(label, size, dist)
@@ -48,7 +49,7 @@ if __name__ == "__main__":
                 and "avg" not in os.path.basename(f)
             ]
             if not csvs:
-                print(f"Warning: no CSVs in {data_dir}")
+                print(f"  Warning: no CSVs in {data_dir}")
                 continue
 
             runs = [load_csv(f) for f in csvs]
@@ -59,33 +60,43 @@ if __name__ == "__main__":
             all_S.extend(S_vals)
 
             m, lo, hi = mean_ci(tps)
-            means.append(m)
-            ci_lowers.append(lo)
-            ci_uppers.append(hi)
+            tps_means.append(m)
+            tps_lowers.append(lo)
+            tps_uppers.append(hi)
 
         # µ = 1 / S̅ where S̅ is the mean service time across all runs
         S_mean = sum(all_S) / len(all_S)
         mu = 1.0 / S_mean
 
         n = len(M)
+
+        # measured avg response time via little's law: r = m / throughput (ms)
+        rt_means = [M[i] / tps_means[i] * 1000 for i in range(n)]
+        rt_lowers = [M[i] / tps_uppers[i] * 1000 for i in range(n)]
+        rt_uppers = [M[i] / tps_lowers[i] * 1000 for i in range(n)]
+
+        # m/m/m ideal: response time = 1/µ = S̅ (service time, no queue)
+        rt_ideal = S_mean * 1000  # convert to ms
+
         fig, ax = plt.subplots(figsize=figsize_single)
 
-        # measured mean throughput with ci bars
+        # measured points
         ax.plot(
             M,
-            means,
+            rt_means,
             color="#e41a1c",
             linewidth=1.5,
             marker="o",
             markersize=8,
-            label="Measured ± 95% CI",
+            label="Measured (Little's law: m / throughput)",
         )
+        # ci error bars
         ax.errorbar(
             M,
-            means,
+            rt_means,
             yerr=[
-                [means[i] - ci_lowers[i] for i in range(n)],
-                [ci_uppers[i] - means[i] for i in range(n)],
+                [rt_means[i] - rt_lowers[i] for i in range(n)],
+                [rt_uppers[i] - rt_means[i] for i in range(n)],
             ],
             fmt="none",
             color="#e41a1c",
@@ -93,19 +104,18 @@ if __name__ == "__main__":
             capthick=1.5,
         )
 
-        # m/m/m ideal: throughput = µ · m
-        ax.plot(
-            [0, max(M) * 1.05],
-            [0, mu * max(M) * 1.05],
+        # ideal horizontal line at service time
+        ax.axhline(
+            y=rt_ideal,
             linestyle="--",
             color="#377eb8",
             linewidth=2,
-            label=f"μ = 1 / S̅ = {mu:.1f} (M/M/m, throughput = μ · m)",
+            label=f"S̅ = {rt_ideal:.1f} ms  (M/M/m ideal, R = 1/μ)",
         )
 
         ax.set_xlabel("Number of workers (m)")
-        ax.set_ylabel("Throughput [txns/s]")
-        ax.set_title(f"M/M/m model fit (exp3, {size}, {dist})")
+        ax.set_ylabel("Average response time [ms]")
+        ax.set_title(f"M/M/m average response time (exp3, {size}, {dist})")
         ax.set_xticks(M)
         ax.set_xlim(left=0)
         ax.set_ylim(bottom=0)
@@ -116,7 +126,7 @@ if __name__ == "__main__":
 
         out_dir = f"charts/cloud/exp3/{size}/{dist}"
         os.makedirs(out_dir, exist_ok=True)
-        out_path = f"{out_dir}/mmm-throughput.png"
+        out_path = f"{out_dir}/mmm-response-time.png"
         plt.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {out_path}")
         plt.close(fig)
