@@ -72,12 +72,12 @@ def main():
             label=f"{args.label1} 95% CI",
         )
     if t2:
-        ax.plot(t2, m2, color=exp2_color, linewidth=2, marker="o", label=args.label2)
+        ax.plot(t2, m2, color="#F44336", linewidth=2, marker="s", label=args.label2)
         ax.fill_between(
             t2,
             [a - b for a, b in zip(m2, c2)],
             [a + b for a, b in zip(m2, c2)],
-            color=exp2_color,
+            color="#F44336",
             alpha=0.2,
             label=f"{args.label2} 95% CI",
         )

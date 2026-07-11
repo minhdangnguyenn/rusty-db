@@ -13,6 +13,8 @@ def main():
     parser = argparse.ArgumentParser(description="Plot throughput of a single run")
     parser.add_argument("csv", help="path to single run CSV")
     parser.add_argument("-o", "--output", default=None)
+    parser.add_argument("--color", default="#2196F3")
+    parser.add_argument("--marker", default="s")
     args = parser.parse_args()
 
     rows = []
@@ -25,8 +27,8 @@ def main():
     tp = [row["throughput"] for row in rows]
 
     fig, ax = plt.subplots(figsize=figsize_single)
-    ax.plot(t, tp, color="#2196F3", linewidth=2, marker="s", label="Throughput")
-    ax.fill_between(t, tp, color="#2196F3", alpha=0.1)
+    ax.plot(t, tp, color=args.color, linewidth=2, marker=args.marker, label="Throughput")
+    ax.fill_between(t, tp, color=args.color, alpha=0.1)
 
     end_tick = 30
     ticks = list(range(0, end_tick + 1))
