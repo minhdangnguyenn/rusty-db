@@ -6,14 +6,11 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 import numpy as np  # pyright: ignore[reportMissingImports]
 
-# from matplotlib.ticker import MaxNLocator  # pyright: ignore[reportMissingImports]
-
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
     exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
-    # figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -92,14 +89,7 @@ def main():
         color=exp2_color,
         zorder=2,
     )
-    # all_vals = a_data + b_data
-    # if all_vals:
-    # loc = MaxNLocator(nbins=5)
-    # yticks = loc.tick_values(0, max(all_vals))
-    # step = yticks[1] - yticks[0] if len(yticks) > 1 else 1
-    # top = yticks[-1] + step
-    # else:
-    #     top = None
+
     ax1.set_ylim(bottom=0)
     ax1.set_ylabel("Latency (ms)")
     ax1.legend(**legend_pos)
