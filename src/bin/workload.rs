@@ -16,12 +16,15 @@ use rand::SeedableRng;
 use rand::distr::Distribution;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use rand_distr::Zipf;
 
 use toydb::error::Result;
 use toydb::log::{latency_stats, log_stats};
 
+use toydb::Client;
+use toydb::StatementResult;
 use toydb::sql::types::Value;
-use toydb::{Client, StatementResult, cache, errdata};
+use toydb::{cache, errdata};
 
 fn main() {
     let Command { runner, subcommand } = Command::parse();
@@ -358,11 +361,19 @@ struct Read {
 
 impl std::fmt::Display for Read {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "read (rows={} size={} batch={} block={} distr={})",
-            self.rows, self.size, self.batch, self.block_size, self.dist
-        )
+        if self.dist == "zipf" {
+            write!(
+                f,
+                "read (rows={} size={} batch={} block={} dist=zipf skew={})",
+                self.rows, self.size, self.batch, self.block_size, self.zipf_skew
+            )
+        } else {
+            write!(
+                f,
+                "read (rows={} size={} batch={} block={} dist={})",
+                self.rows, self.size, self.batch, self.block_size, self.dist
+            )
+        }
     }
 }
 
@@ -409,6 +420,8 @@ impl Workload for Read {
             used_keys: Vec::with_capacity(self.rows as usize),
             block_remaining: self.block_size,
             is_fresh_block: true,
+            use_zipf: self.dist == "zipf",
+            zipf_skew: self.zipf_skew,
         })
     }
 
@@ -463,6 +476,8 @@ struct BlockGen {
     used_keys: Vec<u64>,
     block_remaining: usize,
     is_fresh_block: bool,
+    use_zipf: bool,
+    zipf_skew: f64,
 }
 
 impl Iterator for BlockGen {
@@ -477,6 +492,16 @@ impl Iterator for BlockGen {
         let n = self.batch.min(self.block_remaining);
         self.block_remaining -= n;
 
+        fn sample_idx(rng: &mut StdRng, len: usize, use_zipf: bool, skew: f64) -> usize {
+            if use_zipf && len > 1 {
+                let dist = Zipf::new(len as f64, skew).unwrap();
+                let val: f64 = dist.sample(rng);
+                val as usize
+            } else {
+                rng.random_range(0..len)
+            }
+        }
+
         let mut ids = HashSet::new();
         if self.is_fresh_block {
             for _ in 0..n {
@@ -486,14 +511,19 @@ impl Iterator for BlockGen {
                     self.used_keys.push(id);
                     ids.insert(id);
                 } else {
-                    // all keys seen — fall back to sampling from used_keys
-                    let i = self.rng.random_range(0..self.used_keys.len());
+                    let i = sample_idx(
+                        &mut self.rng,
+                        self.used_keys.len(),
+                        self.use_zipf,
+                        self.zipf_skew,
+                    );
                     ids.insert(self.used_keys[i]);
                 }
             }
         } else {
             for _ in 0..n {
-                let i = self.rng.random_range(0..self.used_keys.len());
+                let i =
+                    sample_idx(&mut self.rng, self.used_keys.len(), self.use_zipf, self.zipf_skew);
                 ids.insert(self.used_keys[i]);
             }
         }
