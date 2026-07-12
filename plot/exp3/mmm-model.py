@@ -1,23 +1,37 @@
 import argparse
 import glob
+import math
 import os
 import sys
 
-import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
-    BLUE,  # pyright: ignore[reportAttributeAccessIssue]
     CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
+    GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
     M,  # pyright: ignore[reportAttributeAccessIssue]
     data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
 )
+
+FIGSIZE = (14, 5)
+
+# precompute n! for n = 0..64 used in p0 formula
+FACT = [math.factorial(n) for n in range(65)]
+
+
+def nice_step(max_val, target_bins=10):
+    if max_val <= 0:
+        return 1.0
+    step = max_val / target_bins
+    exp = 10 ** math.floor(math.log10(step))
+    return round(step / exp) * exp
 
 
 def throughput_per_run(data):
@@ -25,22 +39,56 @@ def throughput_per_run(data):
     return last["txns"] / last["time_s"]
 
 
+def mm_m_response_time(m, lam, mu):
+    # ρ = λ / (m·μ)
+    rho = lam / (m * mu)
+    if rho >= 0.9999:
+        return float("inf")
+
+    # p0 = 1 / [ Σ (mρ)ⁿ/n! + (mρ)ᵐ / (m!·(1-ρ)) ]
+    expr = m * rho
+    sum_terms = sum(expr**n / FACT[n] for n in range(m))
+    extra = expr**m / (FACT[m] * (1 - rho))
+    p_0 = 1.0 / (sum_terms + extra)
+
+    # q = P(queueing) = (mρ)ᵐ / (m!·(1-ρ)) · p0
+    q = expr**m / (FACT[m] * (1 - rho)) * p_0
+
+    # E[r] = 1/μ · (1 + q / (m·(1-ρ)))
+    return 1.0 / mu * (1.0 + q / (m * (1 - rho)))
+
+
+def closed_throughput(m, mu):
+    """self-consistent throughput for closed M/M/m: λ = m / E[r](λ)"""
+    lo, hi = 0.0, m * mu * 0.99999
+    for _ in range(200):
+        mid = (lo + hi) / 2.0
+        r = mm_m_response_time(m, mid, mu)
+        if r == float("inf") or mid > m / r:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2.0
+
+
 def main():
     parser = argparse.ArgumentParser(description="M/M/m model plot")
     parser.add_argument(
-        "--mode", choices=["throughput", "response-time"], default="throughput"
+        "--mode", choices=["throughput", "response-time"], default="response-time"
     )
     args = parser.parse_args()
 
-    EXPS = [("l", "uniform"), ("l", "zipf"), ("s", "uniform"), ("s", "zipf")]
-
-    for size, dist in EXPS:
-        all_S = []
+    for size, dist in [
+        ("l", "uniform"),
+        ("l", "zipf"),
+        ("s", "uniform"),
+        ("s", "zipf"),
+    ]:
         means = []
         ci_lowers = []
         ci_uppers = []
 
-        for i, label in enumerate(CC_LEVELS):
+        for label in CC_LEVELS:
             data_dir = data_dir_for(label, size, dist)
             csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
             csvs = [
@@ -55,60 +103,77 @@ def main():
             runs = [load_csv(f) for f in csvs]
             tps = [throughput_per_run(r) for r in runs]
 
-            S_vals = [M[i] / tp for tp in tps]
-            all_S.extend(S_vals)
-
-            m, lo, hi = mean_ci(tps)
-            means.append(m)
+            m_val, lo, hi = mean_ci(tps)
+            means.append(m_val)
             ci_lowers.append(lo)
             ci_uppers.append(hi)
 
-        S_mean = sum(all_S) / len(all_S)
-        mu = 1.0 / S_mean
+        if len(means) < 1:
+            continue
+
         n = len(M)
 
-        fig, ax = plt.subplots(figsize=figsize_single)
+        # µ = max throughput per worker / 0.95  to ensure ρ < 1 for all m
+        mu = max(means[i] / M[i] for i in range(n)) / 0.95
 
         if args.mode == "response-time":
-            rt_means = [M[i] / means[i] * 1000 for i in range(n)]
-            rt_lowers = [M[i] / ci_uppers[i] * 1000 for i in range(n)]
-            rt_uppers = [M[i] / ci_lowers[i] * 1000 for i in range(n)]
-            rt_ideal = S_mean * 1000
+            rt_meas = [M[i] / means[i] * 1000 for i in range(n)]
+            rt_lower = [M[i] / ci_uppers[i] * 1000 for i in range(n)]
+            rt_upper = [M[i] / ci_lowers[i] * 1000 for i in range(n)]
+
+            rt_mmm = []
+            for i in range(n):
+                lam = means[i]
+                r = mm_m_response_time(M[i], lam, mu)
+                rt_mmm.append(r * 1000 if r != float("inf") else float("nan"))
+
+            fig, ax = plt.subplots(figsize=FIGSIZE)
 
             ax.plot(
                 M,
-                rt_means,
-                color=RED,  # red
+                rt_meas,
+                color=RED,
                 linewidth=1.5,
                 marker="o",
                 markersize=8,
-                label="Measured (Little's law: m / throughput)",
+                label="Measured",
             )
             ax.errorbar(
                 M,
-                rt_means,
+                rt_meas,
                 yerr=[
-                    [rt_means[i] - rt_lowers[i] for i in range(n)],
-                    [rt_uppers[i] - rt_means[i] for i in range(n)],
+                    [rt_meas[i] - rt_lower[i] for i in range(n)],
+                    [rt_upper[i] - rt_meas[i] for i in range(n)],
                 ],
                 fmt="none",
                 color=RED,
                 capsize=4,
                 capthick=1.5,
             )
-            ax.axhline(
-                y=rt_ideal,
-                linestyle="--",
-                color=BLUE,
-                linewidth=2,
-                label=f"S̅ = {rt_ideal:.1f} ms  (M/M/m ideal, R = 1/μ)",
+
+            ax.plot(
+                M,
+                rt_mmm,
+                color=GREEN,
+                linewidth=1.5,
+                marker="s",
+                markersize=8,
+                label="M/M/m predicted",
             )
 
             ax.set_ylabel("Average response time [ms]")
-            ax.set_title("M/M/m average response time")
-            ax.set_ylim(bottom=0)
-            out_path = f"charts/cloud/exp3/{size}/{dist}/mmm-response-time.png"
+            ax.set_title(f"M/M/m response time ({size}, {dist})")
+
+            # y-axis ticks at nice intervals
+            valid = [v for v in rt_meas + rt_mmm if not math.isnan(v)]
+            if valid:
+                step = nice_step(max(valid))
+                ax.yaxis.set_major_locator(MultipleLocator(step))
         else:
+            mmm_pred = [closed_throughput(M[i], mu) for i in range(n)]
+
+            fig, ax = plt.subplots(figsize=FIGSIZE)
+
             ax.plot(
                 M,
                 means,
@@ -130,28 +195,40 @@ def main():
                 capsize=4,
                 capthick=1.5,
             )
+
             ax.plot(
-                [0, max(M) * 1.05],
-                [0, mu * max(M) * 1.05],
-                linestyle="--",
-                color=BLUE,
-                linewidth=2,
-                label=f"μ = 1 / S̅ = {mu:.1f} (M/M/m, throughput = μ · m)",
+                M,
+                mmm_pred,
+                color=GREEN,
+                linewidth=1.5,
+                marker="s",
+                markersize=8,
+                label="M/M/m predicted",
             )
+
             ax.set_ylabel("Throughput [txns/s]")
-            ax.set_title("M/M/m model fit")
-            ax.set_ylim(bottom=0)
-            out_path = f"charts/cloud/exp3/{size}/{dist}/mmm-throughput.png"
+            ax.set_title(f"M/M/m throughput ({size}, {dist})")
+
+            # y-axis ticks at nice intervals
+            valid = [v for v in means + mmm_pred if not math.isnan(v)]
+            if valid:
+                step = nice_step(max(valid))
+                ax.yaxis.set_major_locator(MultipleLocator(step))
 
         ax.set_xlabel("Number of workers (m)")
         ax.set_xticks(M)
         ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+
+        # always show plain numbers (no scientific notation, no offset)
         ax.ticklabel_format(axis="y", style="plain", useOffset=False)
         ax.legend(**legend_pos)
         ax.grid(True, **grid_style)
         plt.tight_layout()
 
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        os.makedirs(os.path.dirname(f"charts/cloud/exp3/{size}/{dist}/"), exist_ok=True)
+        suffix = "response-time" if args.mode == "response-time" else "throughput"
+        out_path = f"charts/cloud/exp3/{size}/{dist}/mmm-{suffix}.png"
         plt.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {out_path}")
         plt.close(fig)
