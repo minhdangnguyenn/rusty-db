@@ -4,6 +4,7 @@
 - Rust
 - Python
 - GCP CLI
+
 ## Usage
 
 With a [Rust compiler](https://www.rust-lang.org/tools/install) installed, a local five-node
@@ -35,7 +36,7 @@ $ ./cluster/run.sh
 [...]
 
 # Run a read-only benchmark via all 5 nodes.
-$ cargo run --release --bin workload -- --expriment sample read
+$ cargo run --release --bin workload -- --expriment sample-exp read
 Preparing initial dataset... done (0.179s)
 Spawning 16 workers... done (0.006s)
 Running workload read (rows=1000 size=64 batch=1)...
@@ -53,95 +54,100 @@ Time   Progress     Txns      Rate       p50       p90       p99       max
 Verifying dataset... done (0.002s)
 ```
 
-## My scripts
+## Terraform Workflow
 
-### Run experiments
+A 5-node toyDB cluster can be deployed on GCP via Terraform.
+
+### 1. Deploy
 
 ```bash
-bash scripts/<cache or no-cache>/<experiment-name>.sh <experiment-id>
+cd terraform
+terraform init
+terraform apply
 ```
 
-e.g.,
+This creates:
+- A VPC network + subnet
+- 5 VM instances (Ubuntu 22.04, `e2-medium` by default)
+- Firewall rules: SSH (anywhere), SQL ports (configurable via `client_cidrs`), Raft (internal only)
+- A startup script installs Rust + builds toyDB and registers `toydb` as a systemd service on each node
+
+Key variables (`terraform/variables.tf`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `project_id` | `cogent-dragon-451411-m4` | GCP project ID |
+| `region` | `europe-west3` | GCP region |
+| `zone` | `europe-west3-c` | GCP zone |
+| `prefix` | `toydb` | Resource name prefix |
+| `machine_type` | `e2-medium` | VM machine type |
+| `disk_size_gb` | `20` | Boot disk size |
+| `client_cidrs` | `["0.0.0.0/0"]` | CIDRs allowed to connect to SQL ports |
+
+### 2. Validate and get host addresses
+
+Wait for all 5 nodes to finish startup and register the `toydb` service:
 
 ```bash
-bash scripts/no-cache/no-cache-read-s-uniform.sh 1
+bash terraform/validate-VMs.sh [zone] [prefix]
 ```
 
-The id defaults to `1` if omitted.
-
-### Plot charts
-
-Requires `python3` with `matplotlib` and `numpy`. Virtualenv: `plot/.venv/`.
+Once ready, retrieve the external IPs with SQL ports:
 
 ```bash
-# Single experiment (timeseries)
-bash plot/plot.sh csv/no-cache-read-s-uniform-1.csv
-# -> charts/<name>-throughput.png, charts/<name>-latency.png
+bash terraform/get-hosts.sh [zone] [prefix]
+```
 
-# Compare throughput (two experiments, overlay)
-bash plot/plot-compare-throughput.sh csv/no-cache.csv csv/cache.csv
-# -> charts/compare-throughput-*.png
+Example output:
 
-# Compare latency (two experiments, grouped bar + difference)
-bash plot/plot-compare-latency.sh csv/no-cache-summary.csv csv/cache-summary.csv
-# -> charts/comparison-latency.png
+```
+  toydb-node-1: 35.198.XX.XX
+  toydb-node-2: 34.159.XX.XX
+  ...
 
-# Compare both
-bash plot/plot-compare.sh csv/no-cache.csv csv/cache.csv
-# -> both compare charts
+  export TOYDB_HOSTS="35.198.XX.XX:9601,34.159.XX.XX:9602,..."
+```
+
+### 3. Set environment variable
+
+```bash
+export TOYDB_HOSTS="35.198.XX.XX:9601,34.159.XX.XX:9602,35.198.XX.XX:9603,34.159.XX.XX:9604,35.198.XX.XX:9605"
+```
+
+All experiment scripts in `scripts/cloud/` read `$TOYDB_HOSTS` automatically via `HOST_FLAG="-H $TOYDB_HOSTS"`.
+
+### 4. Run experiments
+
+```bash
+# Single experiment (e.g. exp1, cache, large, zipf, run ID 1)
+bash scripts/cloud/exp1/cache/l/zipf.sh 1
+
+# Full experiment (all 5 runs)
+for id in 1 2 3 4 5; do bash scripts/cloud/exp1/cache/l/zipf.sh "$id"; done
+
+# Or use the runner for exp1
+bash scripts/cloud/exp1/run-all.sh
+```
+
+### 5. Generate charts
+
+See [`plot/README.md`](plot/README.md) for detailed usage of all plotting scripts.
+
+### 6. Tear down
+
+```bash
+cd terraform
+terraform destroy
 ```
 
 ### Sanitize
 
-Use the sanitize script to wipe cluster data and restart the nodes if needed:
+To wipe cluster data and restart the nodes (without re-deploying):
 
 ```bash
-bash scripts/sanitize.sh
+bash scripts/sanitize-cloud.sh
 ```
 
-### Cache throughput explanation
-
-when cache is enabled, throughput is high from the start, not gradually climbing.
-the first ~10,000 transactions are cache misses (10,000 unique rows). each miss
-queries the db, but the db response is still fast (~1.5ms p50). the cache stores
-the result.
-
-the remaining ~90,000 transactions are cache hits — the ids are already in the
-hashmap. no db call. just a local lock + hash lookup (microseconds).
-
-throughput stays near-maximum from second 1 because the cache miss phase (first
-10k reads) completes within the first second. after that, every read is instant
-— no network, no raft, no disk. the system is cpu-bound on hash lookups, not
-i/o-bound on database queries.
-
-### Throughput scaling with concurrency
-
-experiments with 1, 4, 8, and 16 workers show that throughput scales
-near-linearly at ~2,000 tps per worker. all runs are flat from start to finish
-— no throughput dip in the first 2 seconds. the earlier observed variation was
-just normal measurement noise, not a systematic pattern.
-
-# Available Workloads (default)
-
-The available workloads are:
-
-- `read`: single-row primary key lookups.
-- `write`: single-row inserts to sequential primary keys.
-- `bank`: bank transfers between various customers and accounts. To make things interesting, this
-  includes joins, secondary indexes, sorting, and conflicts.
-
-For more information about workloads and parameters, run `cargo run --bin workload -- --help`.
-
-Example workload results are listed below. Write performance is atrocious, due to
-[fsync](<https://en.wikipedia.org/wiki/Sync_(Unix)>) and a lack of write batching in the Raft layer.
-Disabling fsync, or using the in-memory engine, significantly improves write performance (at the
-expense of durability).
-
-| Workload | BitCask     | BitCask w/o fsync | Memory      |
-| -------- | ----------- | ----------------- | ----------- |
-| `read`   | 14163 txn/s | 13941 txn/s       | 13949 txn/s |
-| `write`  | 35 txn/s    | 4719 txn/s        | 7781 txn/s  |
-| `bank`   | 21 txn/s    | 1120 txn/s        | 1346 txn/s  |
 
 ## Debugging
 
