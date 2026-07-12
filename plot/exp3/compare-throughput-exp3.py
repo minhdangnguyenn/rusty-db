@@ -5,16 +5,17 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    BLUE,  # pyright: ignore[reportAttributeAccessIssue]
+    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
+    RED,  # pyright: ignore[reportAttributeAccessIssue]
     compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
-CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
-colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]
+colors = [RED, BLUE, "#4daf4a", "#984ea3", "#ff7f00"]
 markers = ["o", "s", "^", "D", "v"]
 
 combos = [

@@ -3,13 +3,15 @@ import glob
 import math
 import os
 
-p50_color = "#4CAF50"  # green
-p90_color = "#FF9800"  # orange
+GREEN = "#4CAF50"  # green
+ORANGE = "#FF9800"  # orange
 p99_color = "#F44336"  # red
-max_color = "#9C27B0"  # purple
+PURPLE = "#9C27B0"  # purple
 
 exp1_color = "#2196F3"  # blue
 exp2_color = "#F44336"
+RED = "#e41a1c"
+BLUE = "#377eb8"
 
 legend_pos = {"loc": "upper left", "bbox_to_anchor": (1.02, 1)}
 
@@ -21,6 +23,8 @@ figsize_single = (12, 5)
 # key = degrees of freedom (n - 1), value = t-critical
 # n=5 runs -> df=4 -> t=3.182 (wider than z=1.96 for small samples)
 T_TABLE = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571}
+CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+M = [4, 8, 16, 32, 64]
 
 
 def load_csv(path):

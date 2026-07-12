@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
+    GREEN,  # pyright: ignore[reportAttributeAccessIssue]
+    ORANGE,  # pyright: ignore[reportAttributeAccessIssue]
+    PURPLE,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
-    max_color,  # pyright: ignore[reportAttributeAccessIssue]
-    p50_color,  # pyright: ignore[reportAttributeAccessIssue]
-    p90_color,  # pyright: ignore[reportAttributeAccessIssue]
     p99_color,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
@@ -47,7 +47,7 @@ def main():
 
     metrics = ["p50_ms", "p90_ms", "p99_ms", "max"]
     labels = ["p50", "p90", "p99", "max"]
-    colors = [p50_color, p90_color, p99_color, max_color]
+    colors = [GREEN, ORANGE, p99_color, PURPLE]
 
     means, cis = [], []
     for metric in metrics:

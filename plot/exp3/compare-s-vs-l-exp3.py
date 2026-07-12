@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    CC_LEVELS,  # pyright: ignore[reportUnusedImport, reportAttributeAccessIssue]
+    M,  # pyright: ignore[reportAttributeAccessIssue]
     data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
@@ -13,10 +15,6 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
-M = [4, 8, 16, 32, 64]
-
 
 if __name__ == "__main__":
     for dist in ["uniform", "zipf"]:

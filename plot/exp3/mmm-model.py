@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
+    BLUE,  # pyright: ignore[reportAttributeAccessIssue]
+    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
+    RED,  # pyright: ignore[reportAttributeAccessIssue]
+    M,  # pyright: ignore[reportAttributeAccessIssue]
     data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
@@ -14,9 +18,6 @@ from config import (
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
-M = [4, 8, 16, 32, 64]
 
 
 def throughput_per_run(data):
@@ -77,7 +78,7 @@ def main():
             ax.plot(
                 M,
                 rt_means,
-                color="#e41a1c",
+                color=RED,  # red
                 linewidth=1.5,
                 marker="o",
                 markersize=8,
@@ -91,14 +92,14 @@ def main():
                     [rt_uppers[i] - rt_means[i] for i in range(n)],
                 ],
                 fmt="none",
-                color="#e41a1c",
+                color=RED,
                 capsize=4,
                 capthick=1.5,
             )
             ax.axhline(
                 y=rt_ideal,
                 linestyle="--",
-                color="#377eb8",
+                color=BLUE,
                 linewidth=2,
                 label=f"S̅ = {rt_ideal:.1f} ms  (M/M/m ideal, R = 1/μ)",
             )
@@ -111,7 +112,7 @@ def main():
             ax.plot(
                 M,
                 means,
-                color="#e41a1c",
+                color=RED,
                 linewidth=1.5,
                 marker="o",
                 markersize=8,
@@ -125,7 +126,7 @@ def main():
                     [ci_uppers[i] - means[i] for i in range(n)],
                 ],
                 fmt="none",
-                color="#e41a1c",
+                color=RED,
                 capsize=4,
                 capthick=1.5,
             )
@@ -133,7 +134,7 @@ def main():
                 [0, max(M) * 1.05],
                 [0, mu * max(M) * 1.05],
                 linestyle="--",
-                color="#377eb8",
+                color=BLUE,
                 linewidth=2,
                 label=f"μ = 1 / S̅ = {mu:.1f} (M/M/m, throughput = μ · m)",
             )

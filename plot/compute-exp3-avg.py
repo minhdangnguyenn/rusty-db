@@ -4,11 +4,15 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import load_csv, mean_ci  # pyright: ignore[reportAttributeAccessIssue]
+from config import (  # pyright: ignore[reportAttributeAccessIssue]
+    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
+    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+    mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
+)
 
 NUMERIC_COLS = ["throughput", "txns"]
 
-CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
+# CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 
 
 def data_dir_for(label, size, dist):
