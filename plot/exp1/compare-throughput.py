@@ -13,7 +13,6 @@ from config import (
     figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 
@@ -48,7 +47,7 @@ def main():
             t2,
             [a - b for a, b in zip(m2, c2)],
             [a + b for a, b in zip(m2, c2)],
-            color="#F44336",
+            color=exp2_color,
             alpha=0.2,
             label=f"{args.label2} 95% CI",
         )

@@ -31,7 +31,7 @@ def main():
     values = [summary["p50_ms"], summary["p90_ms"], summary["p99_ms"], summary["max"]]
     colors = [p50_color, p90_color, p99_color, max_color]
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    _, ax = plt.subplots(figsize=figsize_single)
     bars = ax.bar(categories, values, color=colors)
     ax.bar_label(bars, fmt="%.1f", padding=2)
     ax.margins(y=0.15)

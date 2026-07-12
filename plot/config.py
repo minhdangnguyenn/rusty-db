@@ -3,12 +3,12 @@ import glob
 import math
 import os
 
-p50_color = "#4CAF50"
-p90_color = "#FF9800"
-p99_color = "#F44336"
-max_color = "#9C27B0"
+p50_color = "#4CAF50"  # green
+p90_color = "#FF9800"  # orange
+p99_color = "#F44336"  # red
+max_color = "#9C27B0"  # purple
 
-exp1_color = "#2196F3"
+exp1_color = "#2196F3"  # blue
 exp2_color = "#F44336"
 
 legend_pos = {"loc": "upper left", "bbox_to_anchor": (1.02, 1)}
