@@ -1,79 +1,56 @@
 # Workload Generation Flow
 
 ```mermaid
-flowchart TD
-    P0["Start"] --> P["Prepare Phase<br/><b>Bulk insert all keys</b><br/>1..rows into database<br/>(s: 1K, l: 10K)"]
+flowchart TB
+    PREPARE["Prepare Phase<br/>Bulk insert all keys"]
+    STEADY["Steady Phase (30s)<br/>Timer starts"]
+    NEXT["BlockGen.next()<br/>called per request"]
+    BLOCK_END{"block_remaining<br/>== 0 ?"}
+    TOGGLE["Toggle is_fresh_block<br/>Reset block_remaining = 100"]
+    FRESH{"is_fresh_block<br/>& fresh_keys<br/>remaining ?"}
+    FRESH_KEY["Take next key from fresh_keys<br/>First access → cache miss"]
+    USED["Sample key from used_keys<br/>Read from DB (Zipf/uniform)"]
+    DEC["block_remaining -= 1<br/>(batch=1)"]
 
-    P --> S["Steady Phase (30s)<br/><b>Timer starts</b>"]
-
-    S --> G["BlockGen starts</br>Shuffle all key IDs → fresh_keys</br>is_fresh_block = true, block_remaining = 100"]
-
-    G --> CHECK{"fresh_idx<br/>&lt;<br/>fresh_keys.len() ?"}
-
-    CHECK -- Yes --> FRESH_BLOCK{"block_remaining &gt; 0 ?"}
-
-    FRESH_BLOCK -- Yes, batch=1 --> FRESH_READ["Take next key from fresh_keys<br/><b>INSERT into DB</b> (first access)<br/>key → used_keys pool"]
-
-    FRESH_READ --> FRESH_DEC[block_remaining -= batch]
-
-    FRESH_DEC --> FRESH_BLOCK
-
-    FRESH_BLOCK -- No, block exhausted --> TOGGLE_F["is_fresh_block = false<br/>block_remaining = 100"]
-
-    TOGGLE_F --> CHECK
-
-    CHECK -- No --> USED_BLOCK{"is_fresh_block? &amp;<br/>block_remaining &gt; 0 ?"}
-
-    USED_BLOCK -- Yes --> USED_READ["Sample key from used_keys<br/><b>SELECT from DB</b> (read)<br/>Zipf α=1.0 or uniform"]
-
-    USED_READ --> USED_DEC[block_remaining -= batch]
-
-    USED_DEC --> USED_BLOCK
-
-    USED_BLOCK -- No, block exhausted --> TOGGLE_U["is_fresh_block = true<br/>block_remaining = 100"]
-
-    TOGGLE_U --> CHECK
-
-    CHECK -- Yes, but all blocks<br/>become pure reads --> LEGACY["<b>After all fresh keys consumed:</b><br/>Alternation continues,<br/>both block types read from used_keys<br/>Workload is 100% reads"]
-
-    LEGACY --> USED_READ
-
-    style P fill:#e3f2fd,stroke:#1565c0,color:#000
-    style S fill:#fff3e0,stroke:#e65100,color:#000
-    style G fill:#f3e5f5,stroke:#7b1fa2,color:#000
-    style CHECK fill:#fff9c4,stroke:#f9a825,color:#000
-    style FRESH_READ fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style USED_READ fill:#ffcdd2,stroke:#c62828,color:#000
-    style LEGACY fill:#e8eaf6,stroke:#283593,color:#000
+    PREPARE --> STEADY
+    STEADY --> NEXT
+    NEXT --> BLOCK_END
+    BLOCK_END -- Yes --> TOGGLE
+    BLOCK_END -- No --> FRESH
+    TOGGLE --> FRESH
+    FRESH -- Yes --> FRESH_KEY
+    FRESH -- No --> USED
+    FRESH_KEY --> DEC
+    USED --> DEC
+    DEC --> NEXT
 ```
 
-## Block Timeline Example (s = 1000 keys)
+## Timeline (s = 1,000 keys, block_size = 100)
 
 ```
-Block   1 [fresh]: keys 1..100     → INSERT (cache miss)
-Block   2 [used]:  sample from 100  → SELECT
-Block   3 [fresh]: keys 101..200   → INSERT (cache miss)
-Block   4 [used]:  sample from 200  → SELECT
+Block   1 (fresh): keys   1..100   → first access (cache miss)
+Block   2 (used):  from   100 keys → read
+Block   3 (fresh): keys 101..200   → first access (cache miss)
+Block   4 (used):  from   200 keys → read
 ...
-Block  19 [fresh]: keys 901..1000  → INSERT (cache miss)
-Block  20 [used]:  sample from 1000 → SELECT
-Block  21 [fresh]: fallback → sample from 1000 → SELECT
-Block  22 [used]:  sample from 1000 → SELECT
-...
+Block  19 (fresh): keys 901..1000  → first access (cache miss)
+Block  20 (used):  from  1000 keys → read
+Block  21 (fresh): fallback (no fresh_keys left), sample from used_keys
+Block  22 (used):  sample from used_keys
+...pure reads for the rest of the 30s
 ```
-
-- `block_size = 100`, `batch = 1` → mỗi block = 100 requests
-- 1000 keys / 100 = 10 fresh blocks để consume hết fresh_keys
-- Sau block 20, tất cả là pure reads (cả fresh lẫn used block đều sample từ used_keys)
-- Mỗi request = 1 key (batch=1)
 
 ## Key Parameters
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `--rows` | 1000 (s) / 10000 (l) | Total keys |
-| `--block-size` | 100 | Requests per block |
-| `--batch` | 1 | Keys per request |
-| `--dist` | uniform / zipf | Sampling distribution |
-| `--zipf-skew` | 1.0 | Zipf skew parameter |
-| `--duration` | 30 | Benchmark duration (seconds) |
+| Parameter | s | l |
+|-----------|---|---|
+| Total keys | 1,000 | 10,000 |
+| Block size | 100 | 100 |
+| Fresh → used toggle | every 100 requests | every 100 requests |
+| Fresh keys exhausted | after block 20 | after block 200 |
+| After exhaustion | pure reads (Zipf/uniform) | pure reads |
+
+## Notes
+
+- Data is fully inserted during **Prepare** — fresh keys are not inserted into the DB during the benchmark, they are simply read for the first time, causing a cache miss.
+- `BlockGen` is an **infinite iterator** — it never terminates. The benchmark stops after 30 seconds (`--duration 30`).
