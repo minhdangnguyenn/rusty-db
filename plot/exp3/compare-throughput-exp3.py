@@ -1,4 +1,3 @@
-import math
 import os
 import sys
 
@@ -16,6 +15,7 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
 
 CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]
+markers = ["o", "s", "^", "D", "v"]
 
 combos = [
     ("l", "uniform"),
@@ -30,7 +30,7 @@ for size, dist in combos:
     fig, ax = plt.subplots(figsize=figsize_single)
     all_times = []
 
-    for (label, data_dir), color in zip(levels, colors):
+    for (label, data_dir), color, marker in zip(levels, colors, markers):
         if not os.path.isdir(data_dir):
             print(f"  Warning: directory not found: {data_dir}")
             continue
@@ -45,7 +45,7 @@ for size, dist in combos:
             means,
             color=color,
             linewidth=2,
-            marker="o",
+            marker=marker,
             markevery=markevery,
             label=label,
         )
@@ -62,17 +62,10 @@ for size, dist in combos:
         print(f"  No data for {size}/{dist}, skipping.")
         continue
 
-    max_t = math.ceil(max(all_times))
-    n_ticks = 10
-    step = max(1, max_t // n_ticks)
-    ticks = list(range(0, max_t + 1, step))
-    if ticks[-1] != max_t:
-        ticks[-1] = max_t
-        if len(ticks) >= 2 and max_t - ticks[-2] < 1.0:
-            ticks.pop(-2)
-
+    end_tick = 30
+    ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim([0, max_t + 1])
+    ax.set_xlim([0, end_tick + 1])
     ax.set_ylim(bottom=0)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")

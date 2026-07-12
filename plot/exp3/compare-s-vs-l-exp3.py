@@ -63,8 +63,8 @@ if __name__ == "__main__":
                 ],
                 fmt="none",
                 color=color,
-                capsize=4,
-                capthick=1.5,
+                capsize=6,
+                capthick=2.5,
             )
 
         ax.set_xticks(M)
@@ -76,9 +76,9 @@ if __name__ == "__main__":
         ax.grid(True, **grid_style)
         plt.tight_layout()
 
-        out_dir = f"charts/cloud/exp3/{dist}"
+        out_dir = "charts/cloud/exp3/throughput-s-vs-l"
         os.makedirs(out_dir, exist_ok=True)
-        out_path = f"{out_dir}/compare-s-vs-l.png"
+        out_path = f"{out_dir}/{dist}.png"
         plt.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {out_path}")
         plt.close(fig)
