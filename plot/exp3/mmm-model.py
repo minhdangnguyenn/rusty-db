@@ -104,7 +104,7 @@ def main():
             )
 
             ax.set_ylabel("Average response time [ms]")
-            ax.set_title(f"M/M/m average response time (exp3, {size}, {dist})")
+            ax.set_title("M/M/m average response time")
             ax.set_ylim(bottom=0)
             out_path = f"charts/cloud/exp3/{size}/{dist}/mmm-response-time.png"
         else:
@@ -138,7 +138,7 @@ def main():
                 label=f"μ = 1 / S̅ = {mu:.1f} (M/M/m, throughput = μ · m)",
             )
             ax.set_ylabel("Throughput [txns/s]")
-            ax.set_title(f"M/M/m model fit (exp3, {size}, {dist})")
+            ax.set_title("M/M/m model fit")
             ax.set_ylim(bottom=0)
             out_path = f"charts/cloud/exp3/{size}/{dist}/mmm-throughput.png"
 
