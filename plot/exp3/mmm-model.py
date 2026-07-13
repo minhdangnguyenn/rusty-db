@@ -39,6 +39,30 @@ def throughput_per_run(data):
     return last["txns"] / last["time_s"]
 
 
+def estimate_mu(size, dist):
+    """μ = 1/E[s] where E[s] is mean response time at K=4 (least queueing).
+
+    At K=4 with negligible queueing, observed response time E[r] ≈ E[s],
+    so μ = 1 / E[s] ≈ 1 / E[r].
+    E[r] = K / λ = 4 / throughput (Little's law).
+    """
+    data_dir = data_dir_for("c4", size, dist)
+    csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
+    csvs = [
+        f
+        for f in csvs
+        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
+    ]
+    if not csvs:
+        return None
+    runs = [load_csv(f) for f in csvs]
+    tps = [throughput_per_run(r) for r in runs]
+    k = 4
+    e_s_vals = [k / tp for tp in tps]
+    e_s = sum(e_s_vals) / len(e_s_vals)
+    return 1.0 / e_s
+
+
 def mm_m_response_time(m, lam, mu):
     # ρ = λ / (m·μ)
     rho = lam / (m * mu)
@@ -113,19 +137,24 @@ def main():
 
         n = len(M)
 
-        # µ = max throughput per worker / 0.95  to ensure ρ < 1 for all m
-        mu = max(means[i] / M[i] for i in range(n)) / 0.95
+        mu = estimate_mu(size, dist)
+        if mu is None:
+            print(
+                f"Warning: no no-cache data for {size}/{dist}, "
+                f"falling back to heuristic",
+                file=sys.stderr,
+            )
+            mu = max(means[i] / M[i] for i in range(n)) / 0.95
+        else:
+            print(f"μ ({size}/{dist}) = {mu:.2f} req/s (from K=4 cache data)")
 
         if args.mode == "response-time":
+            mmm_pred = [closed_throughput(M[i], mu) for i in range(n)]
             rt_meas = [M[i] / means[i] * 1000 for i in range(n)]
             rt_lower = [M[i] / ci_uppers[i] * 1000 for i in range(n)]
             rt_upper = [M[i] / ci_lowers[i] * 1000 for i in range(n)]
 
-            rt_mmm = []
-            for i in range(n):
-                lam = means[i]
-                r = mm_m_response_time(M[i], lam, mu)
-                rt_mmm.append(r * 1000 if r != float("inf") else float("nan"))
+            rt_mmm = [M[i] / mmm_pred[i] * 1000 for i in range(n)]
 
             fig, ax = plt.subplots(figsize=FIGSIZE)
 
