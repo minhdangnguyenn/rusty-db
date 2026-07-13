@@ -17,6 +17,8 @@ plot/
 ├── exp1/
 │   ├── compare-throughput.py   # CI throughput, 2 directories
 │   ├── compare-latency.py      # CI latency bar + diff, 2 directories
+│   ├── compare-hitrate-size.py # Hit/miss ratio between 2 configs (s vs l, uniform vs zipf)
+│   ├── cache-comparison-all.py # 4 configs (cache/no-cache × uniform/zipf) on one chart
 │   ├── compare-throughput.sh   # Legacy runner
 │   └── compare-latency.sh      # Legacy runner
 ├── exp2/
@@ -144,6 +146,27 @@ usage: compare-latency.py dir1 dir2 [--label1 L1] [--label2 L2]
                                      [--color1 C1] [--color2 C2] [-o OUTPUT]
 ```
 
+#### `compare-hitrate-size.py`
+Compare cache hit or miss ratio between two configurations (reads `avg.csv` from each directory).
+
+```
+usage: compare-hitrate-size.py dir1 dir2
+       [--metric {hit,miss}] [--label1 L1] [--label2 L2]
+       [--color1 C1] [--color2 C2] [-o OUTPUT]
+```
+
+Used for small vs large dataset comparison, or uniform vs zipf for the same size.
+
+#### `cache-comparison-all.py`
+Plot all 4 Exp1 configurations (cache uniform, cache zipf, no-cache uniform, no-cache zipf) as a single throughput-over-time chart with CI bands.
+
+```
+usage: cache-comparison-all.py
+```
+
+Hardcoded paths — reads from `csv/cloud/exp1/{cache,no-cache}/l/{uniform,zipf}/`.
+Outputs to `charts/cloud/exp1/throughput-all-large.png`.
+
 ### Exp2 — FIFO vs LRU
 
 Inputs are avg CSV files (produced by `compute-mean.py`).
@@ -228,6 +251,19 @@ Outputs to `charts/cloud/exp3/{size}/{dist}/mmm-{mode}.png`.
 python plot/exp1/compare-throughput.py \
   csv/cloud/exp1/cache/l/zipf csv/cloud/exp1/no-cache/l/zipf \
   -o charts/cloud/exp1/l/zipf/compare-throughput.png
+
+# Exp1: hit/miss ratio small vs large (uniform)
+python plot/exp1/compare-hitrate-size.py \
+  csv/cloud/exp1/cache/s/uniform csv/cloud/exp1/cache/l/uniform \
+  --metric hit
+
+# Exp1: hit/miss ratio uniform vs zipf (small)
+python plot/exp1/compare-hitrate-size.py \
+  csv/cloud/exp1/cache/s/uniform csv/cloud/exp1/cache/s/zipf \
+  --metric hit --label1 "Uniform" --label2 "Zipf"
+
+# Exp1: all 4 configs on one chart (cache/no-cache × uniform/zipf)
+python plot/exp1/cache-comparison-all.py
 
 # Exp2: regenerate everything
 bash plot/exp2/compare.sh
