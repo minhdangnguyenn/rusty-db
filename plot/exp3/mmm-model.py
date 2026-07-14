@@ -63,7 +63,7 @@ def estimate_mu(size, dist):
     return 1.0 / e_s
 
 
-def mm_m_response_time(m, lam, mu):
+def mmm_response_time(m, lam, mu):
     # ρ = λ / (m·μ)
     p = lam / (m * mu)
     if p >= 0.9999:
@@ -87,8 +87,8 @@ def closed_throughput(m, mu):
     lo, hi = 0.0, m * mu * 0.99999
     for _ in range(200):
         mid = (lo + hi) / 2.0
-        r = mm_m_response_time(m, mid, mu)
-        if r == float("inf") or mid > m / r:
+        Er = mmm_response_time(m, mid, mu)
+        if Er == float("inf") or mid > m / Er:
             hi = mid
         else:
             lo = mid
