@@ -65,21 +65,21 @@ def estimate_mu(size, dist):
 
 def mm_m_response_time(m, lam, mu):
     # ρ = λ / (m·μ)
-    rho = lam / (m * mu)
-    if rho >= 0.9999:
+    p = lam / (m * mu)
+    if p >= 0.9999:
         return float("inf")
 
     # p0 = 1 / [ Σ (mρ)ⁿ/n! + (mρ)ᵐ / (m!·(1-ρ)) ]
-    expr = m * rho
-    sum_terms = sum(expr**n / FACT[n] for n in range(m))
-    extra = expr**m / (FACT[m] * (1 - rho))
+    mp = m * p
+    sum_terms = sum(mp**n / FACT[n] for n in range(m))
+    extra = mp**m / (FACT[m] * (1 - p))
     p_0 = 1.0 / (sum_terms + extra)
 
     # q = P(queueing) = (mρ)ᵐ / (m!·(1-ρ)) · p0
-    q = expr**m / (FACT[m] * (1 - rho)) * p_0
+    q = mp**m / (FACT[m] * (1 - p)) * p_0
 
     # E[r] = 1/μ · (1 + q / (m·(1-ρ)))
-    return 1.0 / mu * (1.0 + q / (m * (1 - rho)))
+    return 1.0 / mu * (1.0 + q / (m * (1 - p)))
 
 
 def closed_throughput(m, mu):
