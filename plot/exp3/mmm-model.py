@@ -20,6 +20,7 @@ from config import (
     mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
+NOCACHE_DIR = "csv/cloud/exp3-nocache"
 FIGSIZE = (14, 5)
 
 # precompute n! for n = 0..64 used in p0 formula
