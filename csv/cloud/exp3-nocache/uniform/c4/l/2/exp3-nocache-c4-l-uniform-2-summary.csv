@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
+"exp3-nocache-c4-l-uniform",2,"read (rows=10000 size=64 batch=1 block=100 dist=uniform)","34.179.168.105:9601;34.40.120.193:9602;34.159.92.97:9603;35.246.249.203:9604;34.185.226.244:9605",4,100000,16791084677885396490,30.067,11483,381.919,7.344127,10.838015,213.909503,247.070719,0,0,0.000000,30.0
