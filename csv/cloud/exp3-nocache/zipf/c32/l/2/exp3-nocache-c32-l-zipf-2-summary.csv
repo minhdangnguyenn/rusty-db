@@ -1,0 +1,2 @@
+experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
+"exp3-nocache-c32-l-zipf",2,"read (rows=10000 size=64 batch=1 block=100 dist=zipf skew=1)","34.179.168.105:9601;34.40.120.193:9602;34.159.92.97:9603;35.246.249.203:9604;34.185.226.244:9605",32,100000,16791084677885396490,31.341,24365,777.409,38.010879,48.398335,87.162879,309.067775,0,0,0.000000,30.0
