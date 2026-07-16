@@ -8,12 +8,12 @@ from matplotlib.ticker import MultipleLocator
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
-    GREEN,
-    RED,
-    grid_style,
-    legend_pos,
-    load_csv,
-    mean_ci,
+    GREEN,  # pyright: ignore[reportAttributeAccessIssue]
+    RED,  # pyright: ignore[reportAttributeAccessIssue]
+    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
+    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+    mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 CC_LEVELS_PLOT = ["c4", "c8", "c16", "c32", "c64"]
@@ -134,11 +134,9 @@ def main():
         rt_lower = [M_used[i] / ci_uppers[i] * 1000 for i in range(n)]
         rt_upper = [M_used[i] / ci_lowers[i] * 1000 for i in range(n)]
 
-        # Predicted response time from closed M/M/m: λ = closed_throughput(K, μ)
-        # then E[r] = K / λ
-        rt_mmm = [
-            M_used[i] / closed_throughput(M_used[i], mu) * 1000 for i in range(n)
-        ]
+        # Predicted response time from open M/M/m:
+        # E[r] = 1/μ · (1 + q / (m·(1-ρ))) with λ = measured throughput at each K
+        rt_mmm = [mmm_response_time(M_used[i], means[i], mu) * 1000 for i in range(n)]
 
         fig, ax = plt.subplots(figsize=FIGSIZE)
 
