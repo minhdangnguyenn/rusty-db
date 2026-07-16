@@ -17,10 +17,10 @@ for i in 1 2 3 4 5; do
     status=$(gcloud compute ssh "$PREFIX-node-$i" --zone "$ZONE" \
       --command "systemctl is-active toydb" 2>/dev/null || echo "waiting")
     if [ "$status" = "active" ]; then
-      echo "  ✅ $PREFIX-node-$i: active"
+      echo "  $PREFIX-node-$i: active"
       break
     fi
-    echo "  ⏳ $PREFIX-node-$i: $status, waiting..."
+    echo " $PREFIX-node-$i: $status, waiting..."
     sleep 3
   done
 done
