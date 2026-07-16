@@ -65,17 +65,17 @@ def mmm_response_time(m, lam, mu):
     # I set clamp here (k = 16 l zipf saturated)
     p = min(lam / (m * mu), 0.9999)
 
-    # p0 = 1 / [ Σ (mρ)ⁿ/n! + (mρ)ᵐ / (m!·(1-ρ)) ]
+    # p0 = ( 1 + (mρ)ᵐ / (m!·(1-ρ)) + Σ_{n=1}^{m-1} (mρ)ⁿ/n! )⁻¹
     mp = m * p
-    sum_terms = sum(mp**n / FACT[n] for n in range(m))
-    extra = mp**m / (FACT[m] * (1 - p))
-    p_0 = 1.0 / (sum_terms + extra)
+    p_0 = 1.0 / (
+        1 + sum(mp**n / FACT[n] for n in range(1, m)) + mp**m / (FACT[m] * (1 - p))
+    )
 
     # q = P(queueing) = (mρ)ᵐ / (m!·(1-ρ)) · p0
     q = mp**m / (FACT[m] * (1 - p)) * p_0
 
     # E[r] = 1/μ · (1 + q / (m·(1-ρ)))
-    return 1.0 / mu * (1.0 + q / (m * (1 - p)))
+    return (1.0 / mu) * (1.0 + q / (m * (1 - p)))
 
 
 def closed_throughput(m, mu):
