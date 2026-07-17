@@ -10,7 +10,7 @@
 
 # Terraform GitIgnore
 
-# 1. Local Secrets & Keys (Your custom GCP key folder)
+# 1. Local Secrets & Keys
 /terraform/keys
 __pycache__
 *.json
@@ -23,7 +23,7 @@ __pycache__
 *.tfstate.backup
 *.tfstate.lock.info
 
-# 4. Variables files (If you ever use secret .tfvars files for passwords/tokens)
+# 4. Variables files
 *.tfvars
 *.tfvars.json
 

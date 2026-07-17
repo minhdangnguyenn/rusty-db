@@ -36,7 +36,7 @@ $ ./cluster/run.sh
 [...]
 
 # Run a read-only benchmark via all 5 nodes.
-$ cargo run --release --bin workload -- --expriment sample-exp read
+$ cargo run --release --bin workload -- --experiment sample-exp --cache read
 Preparing initial dataset... done (0.179s)
 Spawning 16 workers... done (0.006s)
 Running workload read (rows=1000 size=64 batch=1)...
@@ -117,6 +117,15 @@ export TOYDB_HOSTS="35.198.XX.XX:9601,34.159.XX.XX:9602,35.198.XX.XX:9603,34.159
 All experiment scripts in `scripts/cloud/` read `$TOYDB_HOSTS` automatically via `HOST_FLAG="-H $TOYDB_HOSTS"`.
 
 ### 4. Run experiments
+
+Experiment scripts are organized by experiment number under `scripts/cloud/`:
+
+| Directory | Experiment |
+|-----------|------------|
+| `exp1/` | Cache vs no-cache |
+| `exp2/` | FIFO vs LRU eviction |
+| `exp3/` | Concurrency scaling (M/M/m model) |
+| `exp3-no-cache/` | No-cache baseline for concurrency scaling |
 
 ```bash
 # Single experiment (e.g. exp1, cache, large, zipf, run ID 1)
