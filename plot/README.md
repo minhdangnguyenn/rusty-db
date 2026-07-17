@@ -4,7 +4,7 @@
 
 ```
 plot/
-├── config.py                   # Shared config (colors, CI helpers, legend)
+├── config.py                   # Shared config (colors, CI helpers using t-distribution, legend)
 ├── throughput.py               # Single-CSV throughput line chart
 ├── latency.py                  # Single-CSV latency bar chart
 ├── cache-hit-rate.py           # Cache hit/miss rate over time
@@ -17,22 +17,23 @@ plot/
 ├── exp1/
 │   ├── compare-throughput.py   # CI throughput, 2 directories
 │   ├── compare-latency.py      # CI latency bar + diff, 2 directories
-│   ├── compare-hitrate-size.py # Hit/miss ratio between 2 configs (s vs l, uniform vs zipf)
-│   ├── cache-comparison-all.py # 4 configs (cache/no-cache × uniform/zipf) on one chart
+│   ├── compare-hitrate-size.py # Hit/miss ratio between 2 configs
+│   ├── cache-comparison-all.py # 4 configs on one chart
 │   ├── compare-throughput.sh   # Legacy runner
 │   └── compare-latency.sh      # Legacy runner
 ├── exp2/
 │   ├── compare-throughput.py   # Throughput, 2 avg CSVs (FIFO vs LRU)
 │   ├── compare-latency.py      # Latency, 2 avg CSVs
 │   ├── compare-metric.py       # Hit/miss ratio, 2 avg CSVs
-│   ├── compare-hit-miss.py     # Legacy (identical to compare-hitmiss.py)
+│   ├── compare-hit-miss.py     # Legacy
 │   ├── compare-hitmiss.py      # Legacy
-│   ├── compare.sh              # Runner: avg → 4 chart types
+│   ├── compare.sh              # Runner: avg -> 4 chart types
 │   └── regen-exp2-zipf.sh      # Legacy regen script
 └── exp3/
-    ├── compare-throughput-exp3.py  # 5 CC levels, 4 combos
+    ├── compare-throughput-exp3.py  # Throughput over time for all 5 CC levels
     ├── compare-s-vs-l-exp3.py      # Small vs large error bar
-    └── mmm-model.py                # M/M/m model fit
+    ├── mmm-throughput.py           # M/M/m throughput prediction
+    └── mmm-responsetime.py         # M/M/m response time prediction
 ```
 
 ## Data Conventions
@@ -43,21 +44,23 @@ CSV data is organized as:
 csv/cloud/exp1/{cache,no-cache}/{size}/{dist}/{id}/
 csv/cloud/exp2/{fifo,lru}/{size}/{dist}/{id}/
 csv/cloud/exp3/{c4,c8,c16,c32,c64}/{size}/{dist}/{id}/
+csv/cloud/exp3-nocache/{dist}/{label}/{size}/{id}/
 ```
 
 - `{size}`: `l` (10000 rows) or `s` (1000 rows)
 - `{dist}`: `zipf` or `uniform`
-- `{id}`: run number (1–5)
+- `{id}`: run number (1-5)
+- `{label}`: concurrency level (e.g., `c1` for the no-cache service rate baseline)
 
-Chart output mirrors the data structure under `charts/cloud/`.
+Chart output goes to `charts/cloud/exp{1,2,3}/`.
 
 ## Color Convention
 
 | Data | Color |
 |------|-------|
-| Cache / `exp1_color` | `#2196F3` (blue) |
-| No-cache / `exp2_color` | `#F44336` (red) |
-| `interval-throughput.py` auto-detects: no-cache path → red, else → blue |
+| Cache / exp1 | `#2196F3` (blue) |
+| No-cache / exp2 | `#F44336` (red) |
+| `interval-throughput.py` auto-detects: no-cache in path -> red, else -> blue |
 
 ## Script Reference
 
@@ -105,7 +108,7 @@ Two stacked subplots (own y-scale each), computes CI from directories.
 
 ```
 usage: compare-throughput-s.py dir1 dir2 [--label1 L1] [--label2 L2]
-                                   [--color1 C1] [--color2 C2] [-o OUTPUT]
+                                        [--color1 C1] [--color2 C2] [-o OUTPUT]
 ```
 
 #### `compute-mean.py`
@@ -126,7 +129,7 @@ Wrapper that runs `throughput.py` + `cache-hit-rate.py` + `latency.py` on one CS
 usage: throughput-latency.sh <csv> [label]
 ```
 
-### Exp1 — Cache vs No-cache
+### Exp1 -- Cache vs No-cache
 
 #### `compare-throughput.py`
 Compute CI from two directories and overlay throughput lines.
@@ -164,10 +167,10 @@ Plot all 4 Exp1 configurations (cache uniform, cache zipf, no-cache uniform, no-
 usage: cache-comparison-all.py
 ```
 
-Hardcoded paths — reads from `csv/cloud/exp1/{cache,no-cache}/l/{uniform,zipf}/`.
+Hardcoded paths -- reads from `csv/cloud/exp1/{cache,no-cache}/l/{uniform,zipf}/`.
 Outputs to `charts/cloud/exp1/throughput-all-large.png`.
 
-### Exp2 — FIFO vs LRU
+### Exp2 -- FIFO vs LRU
 
 Inputs are avg CSV files (produced by `compute-mean.py`).
 
@@ -186,11 +189,11 @@ usage: compare-latency.py csv1 csv2 [-o OUTPUT]
 ```
 
 #### `compare-metric.py`
-Compare hit or miss ratio with 95 % CI bands.
+Compare hit or miss ratio with 95% CI bands.
 
 ```
 usage: compare-metric.py csv1 csv2 --metric {hit,miss} [--label1 L1] [--label2 L2]
-                                                        [-o OUTPUT]
+                                                       [-o OUTPUT]
 ```
 
 #### `compare.sh`
@@ -204,20 +207,25 @@ bash plot/exp2/compare.sh
 
 Outputs go to `charts/cloud/exp2/compare/{size}/{throughput,latency,hit-miss-ratio}/`.
 
-### Exp3 — Concurrency Scaling
+### Exp3 -- Concurrency Scaling
 
-Scripts are fully self-contained: they read raw CSV directories directly (no avg CSV needed).
+Exp3 varies concurrency level K (4, 8, 16, 32, 64) to study how throughput and
+response time scale. The M/M/m model uses the closed-form queueing formulas
+from lecture 5a. The service rate mu is estimated from a separate no-cache
+run at K=1. Predicted throughput is computed by solving the closed-system
+fixed-point equation lambda = K / E[r](lambda) via binary search.
 
 #### `compare-throughput-exp3.py`
-Plot 5 throughput lines (c4, c8, c16, c32, c64) per combo. x-axis = 0–30 s.
+Plot 5 throughput-over-time lines (c4, c8, c16, c32, c64) for all 4 combos
+(size x dist). Each line shows the mean across 5 runs.
 
 | Level | Color | Marker |
 |-------|-------|--------|
-| c4 | `#e41a1c` red | ○ circle |
-| c8 | `#377eb8` blue | □ square |
-| c16 | `#4daf4a` green | △ triangle |
-| c32 | `#984ea3` purple | ◇ diamond |
-| c64 | `#ff7f00` orange | ▽ triangle-down |
+| c4 | `#e41a1c` red | circle |
+| c8 | `#377eb8` blue | square |
+| c16 | `#4daf4a` green | triangle |
+| c32 | `#984ea3` purple | diamond |
+| c64 | `#ff7f00` orange | triangle-down |
 
 ```
 usage: compare-throughput-exp3.py
@@ -226,7 +234,8 @@ usage: compare-throughput-exp3.py
 Outputs to `charts/cloud/exp3/{size}/{dist}/compare-throughput-ci.png`.
 
 #### `compare-s-vs-l-exp3.py`
-Error bar chart comparing small (s, 1000 rows) vs large (l, 10000 rows) throughput across CC levels.
+Error bar chart comparing small (s, 1000 rows) vs large (l, 10000 rows)
+throughput across CC levels.
 
 ```
 usage: compare-s-vs-l-exp3.py
@@ -234,19 +243,31 @@ usage: compare-s-vs-l-exp3.py
 
 Outputs to `charts/cloud/exp3/throughput-s-vs-l/{dist}.png`.
 
-#### `mmm-model.py`
-Fit M/M/m model to measured throughput data.
+#### `mmm-throughput.py`
+Fit M/M/m model to throughput data. Reads the no-cache c1 data to estimate
+mu, then computes closed M/M/m predictions for each concurrency level.
+Overlays measured (with-cache) throughput with 95% CI and the predicted line
+on the same chart.
 
 ```
-usage: mmm-model.py --mode {throughput,response-time}
+usage: python mmm-throughput.py
 ```
 
-Plots measured ± 95 % CI alongside the M/M/m ideal line.
-Outputs to `charts/cloud/exp3/{size}/{dist}/mmm-{mode}.png`.
+Outputs 4 files: `charts/cloud/exp3/mmm-throughput-{s,l}-{uniform,zipf}.png`.
+
+#### `mmm-responsetime.py`
+Same as mmm-throughput.py but for response time (ms). Response time is
+derived from throughput via Little's law: E[r] = K / lambda.
+
+```
+usage: python mmm-responsetime.py
+```
+
+Outputs 4 files: `charts/cloud/exp3/mmm-responsetime-{s,l}-{uniform,zipf}.png`.
 
 ## Typical Workflows
 
-```bash
+```
 # Exp1: compare cache vs no-cache for a single config
 python plot/exp1/compare-throughput.py \
   csv/cloud/exp1/cache/l/zipf csv/cloud/exp1/no-cache/l/zipf \
@@ -257,29 +278,28 @@ python plot/exp1/compare-hitrate-size.py \
   csv/cloud/exp1/cache/s/uniform csv/cloud/exp1/cache/l/uniform \
   --metric hit
 
-# Exp1: hit/miss ratio uniform vs zipf (small)
-python plot/exp1/compare-hitrate-size.py \
-  csv/cloud/exp1/cache/s/uniform csv/cloud/exp1/cache/s/zipf \
-  --metric hit --label1 "Uniform" --label2 "Zipf"
-
-# Exp1: all 4 configs on one chart (cache/no-cache × uniform/zipf)
+# Exp1: all 4 configs on one chart
 python plot/exp1/cache-comparison-all.py
 
 # Exp2: regenerate everything
 bash plot/exp2/compare.sh
 
 # Exp2: single config
-plot/.venv/bin/python plot/compute-mean.py csv/cloud/exp2/fifo/l/uniform
-plot/.venv/bin/python plot/compute-mean.py csv/cloud/exp1/cache/l/uniform
-plot/.venv/bin/python plot/exp2/compare-throughput.py \
+python plot/compute-mean.py csv/cloud/exp2/fifo/l/uniform
+python plot/compute-mean.py csv/cloud/exp1/cache/l/uniform
+python plot/exp2/compare-throughput.py \
   csv/cloud/exp2/fifo/l/uniform/avg.csv csv/cloud/exp1/cache/l/uniform/avg.csv \
   -o charts/cloud/exp2/compare/l/throughput/uniform.png
 
-# Exp3: all plots
-plot/.venv/bin/python plot/exp3/compare-throughput-exp3.py
-plot/.venv/bin/python plot/exp3/compare-s-vs-l-exp3.py
-plot/.venv/bin/python plot/exp3/mmm-model.py --mode throughput
-plot/.venv/bin/python plot/exp3/mmm-model.py --mode response-time
+# Exp3: M/M/m model (all 4 combos)
+python plot/exp3/mmm-throughput.py
+python plot/exp3/mmm-responsetime.py
+
+# Exp3: throughput over time
+python plot/exp3/compare-throughput-exp3.py
+
+# Exp3: small vs large comparison
+python plot/exp3/compare-s-vs-l-exp3.py
 
 # Single CSV quick view
 bash plot/throughput-latency.sh csv/some-experiment.csv "My Label"
