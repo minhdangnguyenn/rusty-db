@@ -183,7 +183,7 @@ def main():
         plt.tight_layout()
 
         os.makedirs("charts/cloud/exp3/", exist_ok=True)
-        out_path = f"charts/cloud/exp3/mmm-{size}-{dist}-responsetime.png"
+        out_path = f"charts/cloud/exp3/mmm-responsetime-{size}-{dist}.png"
         plt.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {out_path}")
         plt.close(fig)
