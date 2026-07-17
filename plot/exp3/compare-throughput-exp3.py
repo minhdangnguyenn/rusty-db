@@ -66,12 +66,12 @@ for size, dist in combos:
     end_tick = 30
     ticks = list(range(0, end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim([0, end_tick + 1])
+    ax.set_xlim([0, end_tick + 1])  # pyright: ignore[reportArgumentType]
     ax.set_ylim(bottom=0)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")
-    ax.set_title(f"Throughput comparison (exp3, {size}, {dist})")
+    ax.set_title("Throughput comparison")
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()

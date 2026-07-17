@@ -30,12 +30,7 @@ if __name__ == "__main__":
                 csvs = sorted(
                     glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True)
                 )
-                csvs = [
-                    f
-                    for f in csvs
-                    if "summary" not in os.path.basename(f)
-                    and "avg" not in os.path.basename(f)
-                ]
+                csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
                 runs = [load_csv(f) for f in csvs]
                 tps = [r[-1]["throughput"] for r in runs]
                 mean, lo, hi = mean_ci(tps)
@@ -68,7 +63,7 @@ if __name__ == "__main__":
         ax.set_xticks(M)
         ax.set_xlabel("Number of workers (m)")
         ax.set_ylabel("Throughput [txns/s]")
-        ax.set_title(f"Small vs Large dataset (exp3, {dist})")
+        ax.set_title("Small vs Large dataset")
         ax.ticklabel_format(axis="y", style="plain", useOffset=False)
         ax.legend(**legend_pos)
         ax.grid(True, **grid_style)
