@@ -3,12 +3,12 @@ import glob
 import math
 import os
 
-GREEN = "#4CAF50"  # green
-ORANGE = "#FF9800"  # orange
-p99_color = "#F44336"  # red
-PURPLE = "#9C27B0"  # purple
+GREEN = "#4CAF50"
+ORANGE = "#FF9800"
+p99_color = "#F44336"
+PURPLE = "#9C27B0"
 
-exp1_color = "#2196F3"  # blue
+exp1_color = "#2196F3"
 exp2_color = "#F44336"
 RED = "#e41a1c"
 BLUE = "#377eb8"
@@ -59,11 +59,7 @@ def mean_ci(vals):
 
 def compute_ci_from_dir(data_dir):
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
-    ]
+    csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
     runs = [load_csv(f) for f in csvs]
     if not runs:
         return [], [], []

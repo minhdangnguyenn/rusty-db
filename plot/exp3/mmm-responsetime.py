@@ -13,6 +13,7 @@ from config import (
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
     M,  # pyright: ignore[reportAttributeAccessIssue]
+    data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -22,10 +23,12 @@ from config import (
 FACT = [math.factorial(n) for n in range(65)]
 
 
-def data_dir_for_nocache(label, size, dist):
+def data_dir_nocache(label, size, dist):
     return f"csv/cloud/exp3-nocache/{dist}/{label}/{size}"
 
 
+# get the power of 10
+# 10, 20, 30, ...
 def nice_step(max_val, target_bins=10):
     if max_val <= 0:
         return 1.0
@@ -40,7 +43,7 @@ def throughput_per_run(data):
 
 
 def estimate_mu(size, dist):
-    data_dir = data_dir_for_nocache("c1", size, dist)
+    data_dir = data_dir_nocache("c1", size, dist)
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
     csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
     if not csvs:
@@ -89,7 +92,7 @@ def main():
         ci_uppers = []
 
         for label in CC_LEVELS:
-            data_dir = data_dir_for_nocache(label, size, dist)
+            data_dir = data_dir_for(label, size, dist)
             csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
             csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
             if not csvs:
@@ -124,9 +127,9 @@ def main():
         rt_lower = [M_used[i] / ci_uppers[i] * 1000 for i in range(n)]
         rt_upper = [M_used[i] / ci_lowers[i] * 1000 for i in range(n)]
 
-        # Predicted response time from open M/M/m:
-        # E[r] = 1/μ · (1 + q / (m·(1-ρ))) with λ = measured throughput at each K
-        rt_mmm = [mmm_response_time(M_used[i], means[i], mu) * 1000 for i in range(n)]
+        # Predicted response time from closed M/M/m:
+        # E[r] = K / λ_predicted  (Little's law)
+        rt_mmm = [M_used[i] / closed_throughput(M_used[i], mu) * 1000 for i in range(n)]
 
         fig, ax = plt.subplots(figsize=FIGSIZE)
 
@@ -179,10 +182,8 @@ def main():
         ax.grid(True, **grid_style)
         plt.tight_layout()
 
-        os.makedirs(
-            os.path.dirname(f"charts/cloud/exp3-nocache/{size}/{dist}/"), exist_ok=True
-        )
-        out_path = f"charts/cloud/exp3-nocache/{size}/{dist}/mmm-responsetime.png"
+        os.makedirs("charts/cloud/exp3/", exist_ok=True)
+        out_path = f"charts/cloud/exp3/mmm-{size}-{dist}-responsetime.png"
         plt.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {out_path}")
         plt.close(fig)
