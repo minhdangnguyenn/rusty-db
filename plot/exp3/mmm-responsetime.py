@@ -120,7 +120,7 @@ def main():
             )
             mu = max(means[i] / M_used[i] for i in range(n)) / 0.95
         else:
-            print(f"\u03bc ({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
+            print(f"({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
 
         # Measured response time: E[r] = K / λ
         rt_meas = [M_used[i] / means[i] * 1000 for i in range(n)]
