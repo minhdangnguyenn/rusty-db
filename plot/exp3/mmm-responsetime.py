@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -18,7 +19,6 @@ from config import (
 
 CC_LEVELS_PLOT = ["c4", "c8", "c16", "c32", "c64"]
 M_PLOT = [4, 8, 16, 32, 64]
-FIGSIZE = (14, 5)
 
 FACT = [math.factorial(n) for n in range(65)]
 
@@ -43,11 +43,7 @@ def throughput_per_run(data):
 def estimate_mu(size, dist):
     data_dir = data_dir_for_nocache("c1", size, dist)
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
-    ]
+    csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
     if not csvs:
         return None
     runs = [load_csv(f) for f in csvs]
@@ -138,7 +134,7 @@ def main():
         # E[r] = 1/μ · (1 + q / (m·(1-ρ))) with λ = measured throughput at each K
         rt_mmm = [mmm_response_time(M_used[i], means[i], mu) * 1000 for i in range(n)]
 
-        fig, ax = plt.subplots(figsize=FIGSIZE)
+        fig, ax = plt.subplots(figsize=figsize_single)
 
         ax.plot(
             M_used,

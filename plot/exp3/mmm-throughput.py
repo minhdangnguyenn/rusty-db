@@ -43,11 +43,7 @@ def throughput_per_run(data):
 def estimate_mu(size, dist):
     data_dir = data_dir_for_nocache("c1", size, dist)
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
-    ]
+    csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
     if not csvs:
         return None
     runs = [load_csv(f) for f in csvs]
