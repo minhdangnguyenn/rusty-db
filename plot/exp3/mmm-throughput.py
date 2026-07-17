@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
+    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -18,7 +19,6 @@ from config import (
 
 CC_LEVELS_PLOT = ["c4", "c8", "c16", "c32", "c64"]
 M_PLOT = [4, 8, 16, 32, 64]
-FIGSIZE = (14, 5)
 
 FACT = [math.factorial(n) for n in range(65)]
 
@@ -127,7 +127,7 @@ def main():
 
         mmm_pred = [closed_throughput(M_used[i], mu) for i in range(n)]
 
-        fig, ax = plt.subplots(figsize=FIGSIZE)
+        fig, ax = plt.subplots(figsize=figsize_single)
 
         ax.plot(
             M_used,
