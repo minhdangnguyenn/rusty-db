@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
     exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
@@ -32,7 +32,7 @@ def main():
     fig, (ax1, ax2) = plt.subplots(
         2,
         1,
-        figsize=(figsize_single[0], figsize_single[1] * 1.6),
+        figsize=(FIGSIZE[0], FIGSIZE[1] * 1.6),
         gridspec_kw={"height_ratios": [1, 1]},
         sharex=True,
     )

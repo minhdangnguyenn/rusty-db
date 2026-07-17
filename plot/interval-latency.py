@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     ORANGE,  # pyright: ignore[reportAttributeAccessIssue]
     PURPLE,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     p99_color,  # pyright: ignore[reportAttributeAccessIssue]
@@ -56,7 +56,7 @@ def main():
         means.append(mean)
         cis.append(ci)
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    _, ax = plt.subplots(figsize=FIGSIZE)
     bars = ax.bar(
         labels, means, color=colors, yerr=cis, capsize=5, error_kw={"linewidth": 1.5}
     )

@@ -7,10 +7,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
     BLUE,  # pyright: ignore[reportAttributeAccessIssue]
     CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
     compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
@@ -28,7 +28,7 @@ combos = [
 for size, dist in combos:
     levels = [(label, data_dir_for(label, size, dist)) for label in CC_LEVELS]
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     all_times = []
 
     for (label, data_dir), color, marker in zip(levels, colors, markers):

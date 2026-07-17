@@ -8,9 +8,9 @@ from matplotlib.ticker import MultipleLocator
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -134,7 +134,7 @@ def main():
         # E[r] = 1/μ · (1 + q / (m·(1-ρ))) with λ = measured throughput at each K
         rt_mmm = [mmm_response_time(M_used[i], means[i], mu) * 1000 for i in range(n)]
 
-        fig, ax = plt.subplots(figsize=figsize_single)
+        fig, ax = plt.subplots(figsize=FIGSIZE)
 
         ax.plot(
             M_used,

@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportAttributeAccessIssue, r
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -60,7 +60,7 @@ def main():
     runs = [load_csv(f) for f in csvs]
     times, means, cis = align_metric(runs, "throughput")
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    fig, ax = plt.subplots(figsize=FIGSIZE)
 
     ax.plot(times, means, color=exp1_color, linewidth=2, marker="s", label="Mean")
     ax.fill_between(

@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
     exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -33,7 +33,7 @@ def main():
         t, hit_rate = [0, t[0]], [hit_rate[0], hit_rate[0]]
         t, miss_rate = [0, t[0]], [miss_rate[0], miss_rate[0]]
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     x_max = max(t)
     markers = list(range(len(t)))
 

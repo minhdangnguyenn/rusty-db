@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
     exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -39,7 +39,7 @@ def main():
     lo2 = [row.get("throughput_ci_lower", row["throughput"]) for row in r2]
     hi2 = [row.get("throughput_ci_upper", row["throughput"]) for row in r2]
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    fig, ax = plt.subplots(figsize=FIGSIZE)
 
     ax.plot(
         t1, tp1, color=exp2_color, linewidth=2, marker="s", label=f"{args.label1} mean"

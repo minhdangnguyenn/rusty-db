@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (  # noqa: E402
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     ORANGE,  # pyright: ignore[reportAttributeAccessIssue]
     PURPLE,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     p99_color,  # pyright: ignore[reportAttributeAccessIssue]
@@ -31,7 +31,7 @@ def main():
     values = [summary["p50_ms"], summary["p90_ms"], summary["p99_ms"], summary["max"]]
     colors = [GREEN, ORANGE, p99_color, PURPLE]
 
-    _, ax = plt.subplots(figsize=figsize_single)
+    _, ax = plt.subplots(figsize=FIGSIZE)
     bars = ax.bar(categories, values, color=colors)
     ax.bar_label(bars, fmt="%.1f", padding=2)
     ax.margins(y=0.15)

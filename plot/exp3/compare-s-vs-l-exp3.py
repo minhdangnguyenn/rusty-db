@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (  # pyright: ignore[reportAttributeAccessIssue]
     CC_LEVELS,  # pyright: ignore[reportUnusedImport, reportAttributeAccessIssue]
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     M,  # pyright: ignore[reportAttributeAccessIssue]
     data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -18,7 +18,7 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
 
 if __name__ == "__main__":
     for dist in ["uniform", "zipf"]:
-        fig, ax = plt.subplots(figsize=figsize_single)
+        fig, ax = plt.subplots(figsize=FIGSIZE)
 
         for size, color, marker, label in [
             ("s", "#377eb8", "o", "Small (1000 rows)"),

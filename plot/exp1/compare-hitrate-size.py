@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -37,31 +37,53 @@ def main():
         t = [row["time_s"] for row in data]
         if args.metric == "miss":
             val = [(1 - row["cache_hit_rate"]) * 100 for row in data]
-            lo = [(1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100 for row in data]
-            hi = [(1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100 for row in data]
+            lo = [
+                (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
+                for row in data
+            ]
+            hi = [
+                (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
+                for row in data
+            ]
         else:
             val = [row["cache_hit_rate"] * 100 for row in data]
-            lo = [row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100 for row in data]
-            hi = [row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100 for row in data]
+            lo = [
+                row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100
+                for row in data
+            ]
+            hi = [
+                row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100
+                for row in data
+            ]
         return t, val, lo, hi
 
     t1, v1, lo1, hi1 = extract(d1)
     t2, v2, lo2, hi2 = extract(d2)
 
-    _, ax = plt.subplots(figsize=figsize_single)
+    _, ax = plt.subplots(figsize=FIGSIZE)
 
-    ax.plot(t1, v1, color=args.color1, linewidth=2, marker="o", label=f"{args.label1} mean")
-    ax.fill_between(t1, lo1, hi1, color=args.color1, alpha=0.2, label=f"{args.label1} 95% CI")
-    ax.plot(t2, v2, color=args.color2, linewidth=2, marker="s", label=f"{args.label2} mean")
-    ax.fill_between(t2, lo2, hi2, color=args.color2, alpha=0.2, label=f"{args.label2} 95% CI")
+    ax.plot(
+        t1, v1, color=args.color1, linewidth=2, marker="o", label=f"{args.label1} mean"
+    )
+    ax.fill_between(
+        t1, lo1, hi1, color=args.color1, alpha=0.2, label=f"{args.label1} 95% CI"
+    )
+    ax.plot(
+        t2, v2, color=args.color2, linewidth=2, marker="s", label=f"{args.label2} mean"
+    )
+    ax.fill_between(
+        t2, lo2, hi2, color=args.color2, alpha=0.2, label=f"{args.label2} 95% CI"
+    )
 
     ax.set_xticks(list(range(0, 31)))
-    ax.set_xlim([0, 31])
-    ax.set_ylim([0, 100])
+    ax.set_xlim([0, 31])  # pyright: ignore[reportArgumentType]
+    ax.set_ylim([0, 100])  # pyright: ignore[reportArgumentType]
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Miss ratio [%]" if args.metric == "miss" else "Hit ratio [%]")
-    ax.set_title(f"{'Miss' if args.metric == 'miss' else 'Hit'} ratio: {args.label1} vs {args.label2}")
+    ax.set_title(
+        f"{'Miss' if args.metric == 'miss' else 'Hit'} ratio: {args.label1} vs {args.label2}"
+    )
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()

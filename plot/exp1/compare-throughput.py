@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
+    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
     exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
-    figsize_single,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
@@ -30,7 +30,7 @@ def main():
     t1, m1, c1 = compute_ci_from_dir(args.dir1)
     t2, m2, c2 = compute_ci_from_dir(args.dir2)
 
-    fig, ax = plt.subplots(figsize=figsize_single)
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     if t1:
         ax.plot(t1, m1, color=exp1_color, linewidth=2, marker="o", label=args.label1)
         ax.fill_between(
@@ -60,7 +60,7 @@ def main():
     all_means = (m1 or []) + (m2 or [])
     all_cis = (c1 or []) + (c2 or [])
     y_max = max([a + b for a, b in zip(all_means, all_cis)]) if all_means else 1
-    ax.set_ylim([0, y_max])
+    ax.set_ylim([0, y_max])  # pyright: ignore[reportArgumentType]
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
 
     ax.set_xlabel("Time [s]")
