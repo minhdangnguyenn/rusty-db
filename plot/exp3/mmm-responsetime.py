@@ -8,17 +8,16 @@ from matplotlib.ticker import MultipleLocator
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
+    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
     FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     GREEN,  # pyright: ignore[reportAttributeAccessIssue]
     RED,  # pyright: ignore[reportAttributeAccessIssue]
+    M,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
     mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
 )
-
-CC_LEVELS_PLOT = ["c4", "c8", "c16", "c32", "c64"]
-M_PLOT = [4, 8, 16, 32, 64]
 
 FACT = [math.factorial(n) for n in range(65)]
 
@@ -89,15 +88,10 @@ def main():
         ci_lowers = []
         ci_uppers = []
 
-        for label in CC_LEVELS_PLOT:
+        for label in CC_LEVELS:
             data_dir = data_dir_for_nocache(label, size, dist)
             csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-            csvs = [
-                f
-                for f in csvs
-                if "summary" not in os.path.basename(f)
-                and "avg" not in os.path.basename(f)
-            ]
+            csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
             if not csvs:
                 continue
 
@@ -113,7 +107,7 @@ def main():
             continue
 
         n = len(means)
-        M_used = M_PLOT[:n]
+        M_used = M[:n]
 
         mu = estimate_mu(size, dist)
         if mu is None:
