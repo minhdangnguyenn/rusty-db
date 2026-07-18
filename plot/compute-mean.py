@@ -37,7 +37,7 @@ def main():
     csvs = [
         f
         for f in csvs
-        if "summary" not in os.path.basename(f) and "avg" not in os.path.basename(f)
+        if "summary" not in f and "avg" not in f
     ]
 
     if not csvs:

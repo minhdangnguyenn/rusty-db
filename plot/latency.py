@@ -27,12 +27,12 @@ def main():
     data = load_csv(args.csv)
     summary = data[-1]
 
-    categories = ["p50", "p90", "p99", "max"]
+    percentiles = ["p50", "p90", "p99", "max"]
     values = [summary["p50_ms"], summary["p90_ms"], summary["p99_ms"], summary["max"]]
     colors = [GREEN, ORANGE, p99_color, PURPLE]
 
     _, ax = plt.subplots(figsize=FIGSIZE)
-    bars = ax.bar(categories, values, color=colors)
+    bars = ax.bar(percentiles, values, color=colors)
     ax.bar_label(bars, fmt="%.1f", padding=2)
     ax.margins(y=0.15)
 
