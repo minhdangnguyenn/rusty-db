@@ -8,18 +8,19 @@ import numpy as np  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (
-    exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    NAVY,
+    LIGHT_RED,
+    grid_style,
+    legend_pos,
+    load_csv,
+    mean_ci,
 )
 
 
 def compute_latency_ci_from_dir(data_dir):
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [f for f in csvs if "summary" not in os.path.basename(f)]
+    csvs = [f for f in csvs if "summary" not in f]
     runs = [load_csv(f) for f in csvs]
     if not runs:
         return {}, {}
@@ -28,12 +29,9 @@ def compute_latency_ci_from_dir(data_dir):
     means, cis = {}, {}
     for key in metrics:
         vals = [row[key] for row in last_rows]
-        n = len(vals)
-        mean = sum(vals) / n
-        std = (sum((v - mean) ** 2 for v in vals) / (n - 1)) ** 0.5
-        ci = 1.96 * std / (n**0.5)
-        means[key] = mean
-        cis[key] = ci
+        m, lo, hi = mean_ci(vals)
+        means[key] = m
+        cis[key] = hi - m
     return means, cis
 
 
@@ -59,6 +57,7 @@ def main():
     b_data = [m2[k] for k in keys]
     b_err = [c2[k] for k in keys]
     diff = [a - b for a, b in zip(a_data, b_data)]
+    # another dark green and dark red
     diff_colors = ["#2a7d4f" if v < 0 else "#b94040" for v in diff]
 
     x = np.arange(len(categories))
@@ -76,7 +75,7 @@ def main():
         yerr=a_err,
         capsize=3,
         label=args.label1,
-        color=exp1_color,
+        color=NAVY,
         zorder=2,
     )
     ax1.bar(
@@ -118,7 +117,7 @@ def main():
 
     output = args.output or f"charts/compare-latency-{label_text}.png"
     os.makedirs("charts", exist_ok=True)
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
 
 
 if __name__ == "__main__":

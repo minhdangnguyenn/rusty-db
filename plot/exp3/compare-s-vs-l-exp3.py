@@ -5,15 +5,17 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
     CC_LEVELS,  # pyright: ignore[reportUnusedImport, reportAttributeAccessIssue]
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    M,  # pyright: ignore[reportAttributeAccessIssue]
-    data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
-    mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
+    FIGSIZE,
+    M,
+    BLUE,
+    RED,
+    data_dir_for,
+    grid_style,
+    legend_pos,
+    load_csv,
+    mean_ci,
 )
 
 if __name__ == "__main__":
@@ -21,8 +23,8 @@ if __name__ == "__main__":
         fig, ax = plt.subplots(figsize=FIGSIZE)
 
         for size, color, marker, label in [
-            ("s", "#377eb8", "o", "Small (1000 rows)"),
-            ("l", "#e41a1c", "s", "Large (10000 rows)"),
+            ("s", BLUE, "o", "Small (1000 rows)"),
+            ("l", RED, "s", "Large (10000 rows)"),
         ]:
             means, lowers, uppers = [], [], []
             for label_cc, m in zip(CC_LEVELS, M):
@@ -72,6 +74,6 @@ if __name__ == "__main__":
         out_dir = "charts/cloud/exp3/throughput-s-vs-l"
         os.makedirs(out_dir, exist_ok=True)
         out_path = f"{out_dir}/{dist}.png"
-        plt.savefig(out_path, dpi=300, bbox_inches="tight")
+        plt.savefig(out_path)
         print(f"Saved to {out_path}")
         plt.close(fig)

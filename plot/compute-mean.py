@@ -5,7 +5,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import load_csv, mean_ci  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import load_csv, mean_ci
 
 NUMERIC_COLS = [
     "progress",

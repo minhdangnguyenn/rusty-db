@@ -6,23 +6,16 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import (
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    GREEN,  # pyright: ignore[reportAttributeAccessIssue]
-    ORANGE,  # pyright: ignore[reportAttributeAccessIssue]
-    PURPLE,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
-    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    FIGSIZE,
+    GREEN,
+    ORANGE,
+    PURPLE,
+    grid_style,
+    load_csv,
+    LIGHT_RED,
+    mean_ci,
 )
-
-
-def compute_ci(vals):
-    n = len(vals)
-    mean = sum(vals) / n
-    std = (sum((v - mean) ** 2 for v in vals) / (n - 1)) ** 0.5
-    ci = 1.96 * std / (n**0.5)
-    return mean, ci
 
 
 def main():
@@ -52,14 +45,12 @@ def main():
     means, cis = [], []
     for metric in metrics:
         vals = [row[metric] for row in last_rows]
-        mean, ci = compute_ci(vals)
-        means.append(mean)
-        cis.append(ci)
+        m, lo, hi = mean_ci(vals)
+        means.append(m)
+        cis.append(hi - m)
 
     _, ax = plt.subplots(figsize=FIGSIZE)
-    bars = ax.bar(
-        labels, means, color=colors, yerr=cis, capsize=5, error_kw={"linewidth": 1.5}
-    )
+    bars = ax.bar(labels, means, color=colors, yerr=cis, capsize=5, error_kw={"elinewidth": 2, "capsize": 5})
     ax.bar_label(bars, fmt="%.1f", padding=2)
     ax.margins(y=0.15)
 

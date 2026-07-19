@@ -5,13 +5,13 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    FIGSIZE,
+    NAVY,
+    LIGHT_RED,
+    grid_style,
+    legend_pos,
+    load_csv,
 )
 
 
@@ -53,13 +53,13 @@ def main():
         label=f"{args.label1} 95% CI",
     )
     ax.plot(
-        t2, tp2, color=exp1_color, linewidth=2, marker="^", label=f"{args.label2} mean"
+        t2, tp2, color=NAVY, linewidth=2, marker="^", label=f"{args.label2} mean"
     )
     ax.fill_between(
         t2,
         lo2,
         hi2,
-        color=exp1_color,
+        color=NAVY,
         alpha=0.2,
         label=f"{args.label2} 95% CI",
     )
@@ -82,7 +82,7 @@ def main():
     label_text = f"{args.label1}-{args.label2}"
     output = args.output or f"charts/compare-throughput-{label_text}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
 
 
 if __name__ == "__main__":

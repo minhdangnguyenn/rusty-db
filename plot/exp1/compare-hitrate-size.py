@@ -5,16 +5,14 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    FIGSIZE,
+    LIGHT_RED,
+    NAVY,
+    grid_style,
+    legend_pos,
+    load_csv,
 )
-
-COLOR_S = "#2196F3"
-COLOR_L = "#F44336"
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -25,8 +23,8 @@ def main():
     parser.add_argument("--metric", choices=["hit", "miss"], default="hit")
     parser.add_argument("--label1", default="Small")
     parser.add_argument("--label2", default="Large")
-    parser.add_argument("--color1", default=COLOR_S)
-    parser.add_argument("--color2", default=COLOR_L)
+    parser.add_argument("--color1", default=NAVY)
+    parser.add_argument("--color2", default=LIGHT_RED)
     parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
 
@@ -90,7 +88,7 @@ def main():
 
     output = args.output or f"charts/{args.label1}-{args.label2}-{args.metric}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
     print(f"Saved to {output}")
 
 

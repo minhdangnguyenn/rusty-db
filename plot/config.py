@@ -6,8 +6,7 @@ import os
 GREEN = "#4CAF50"
 ORANGE = "#FF9800"
 PURPLE = "#9C27B0"
-
-exp1_color = "#2196F3"
+NAVY = "#2196F3"
 LIGHT_RED = "#F44336"
 RED = "#e41a1c"
 BLUE = "#377eb8"
@@ -75,7 +74,7 @@ def compute_ci_from_dir(data_dir):
             continue
         mean = sum(vals) / len(vals)
         std = (sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
-        ci = 1.96 * std / (len(vals) ** 0.5)
+        ci = t_critical(len(vals)) * std / (len(vals) ** 0.5)
         means.append(mean)
         cis.append(ci)
     return times, means, cis

@@ -7,17 +7,17 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 from matplotlib.ticker import MultipleLocator  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (
-    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    GREEN,  # pyright: ignore[reportAttributeAccessIssue]
-    RED,  # pyright: ignore[reportAttributeAccessIssue]
-    M,  # pyright: ignore[reportAttributeAccessIssue]
-    data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
-    mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    CC_LEVELS,
+    FIGSIZE,
+    GREEN,
+    RED,
+    M,
+    data_dir_for,
+    grid_style,
+    legend_pos,
+    load_csv,
+    mean_ci,
 )
 
 FACT = [math.factorial(n) for n in range(65)]
@@ -177,7 +177,7 @@ def main():
 
         os.makedirs("charts/cloud/exp3/", exist_ok=True)
         out_path = f"charts/cloud/exp3/mmm-throughput-{size}-{dist}.png"
-        plt.savefig(out_path, dpi=300, bbox_inches="tight")
+        plt.savefig(out_path)
         print(f"Saved to {out_path}")
         plt.close(fig)
 

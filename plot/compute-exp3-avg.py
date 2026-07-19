@@ -4,18 +4,14 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import (  # pyright: ignore[reportAttributeAccessIssue]
-    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
-    mean_ci,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    CC_LEVELS,
+    load_csv,
+    mean_ci,
+    data_dir_for
 )
 
 NUMERIC_COLS = ["throughput", "txns"]
-
-def data_dir_for(label, size, dist):
-    if label == "c16":
-        return f"csv/cloud/exp1/cache/{size}/{dist}"
-    return f"csv/cloud/exp3/{label}/{size}/{dist}"
 
 
 if __name__ == "__main__":
@@ -27,11 +23,16 @@ if __name__ == "__main__":
                 data_dir = data_dir_for(label, size, dist)
 
                 if not os.path.isdir(data_dir):
-                    print(f"  Warning: directory not found: {data_dir}")
+                    print(f"Warning: directory not found: {data_dir}")
                     continue
 
                 csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-                csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
+                csvs = [
+                    f
+                    for f in csvs
+                    if "summary" not in os.path.basename(f)
+                    and "avg" not in os.path.basename(f)
+                ]
                 if not csvs:
                     print(f"  Warning: no CSVs in {data_dir}")
                     continue

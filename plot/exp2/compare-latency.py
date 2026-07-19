@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 import numpy as np  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (
-    exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    NAVY,
+    LIGHT_RED,
+    grid_style,
+    legend_pos,
+    load_csv,
 )
 
 
@@ -65,7 +65,7 @@ def main():
         yerr=a_err,
         capsize=3,
         label=args.label1,
-        color=exp1_color,
+        color=NAVY,
         zorder=2,
     )
     ax1.bar(
@@ -104,11 +104,10 @@ def main():
         color="gray",
     )
 
-    label_text = f"{args.label1}-{args.label2}"
     output = args.output or f"charts/compare-latency-{label_text}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.tight_layout()
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
 
 
 if __name__ == "__main__":

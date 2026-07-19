@@ -5,10 +5,11 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import (
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    FIGSIZE,
+    NAVY,
+    grid_style,
+    load_csv,
 )
 
 
@@ -16,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description="Plot throughput over time")
     parser.add_argument("csv", help="path to CSV file")
     parser.add_argument("--label", default=None, help="legend label")
-    parser.add_argument("--color", default="#2196F3")
+    parser.add_argument("--color", default=NAVY)
     parser.add_argument("--marker", default="s")
     parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
@@ -50,7 +51,7 @@ def main():
         base = os.path.splitext(os.path.basename(args.csv))[0]
         output = f"charts/{base}-throughput.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
 
 
 if __name__ == "__main__":

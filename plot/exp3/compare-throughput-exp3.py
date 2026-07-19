@@ -4,15 +4,15 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import (  # pyright: ignore[reportAttributeAccessIssue]
-    BLUE,  # pyright: ignore[reportAttributeAccessIssue]
-    CC_LEVELS,  # pyright: ignore[reportAttributeAccessIssue]
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    RED,  # pyright: ignore[reportAttributeAccessIssue]
-    compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
-    data_dir_for,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    BLUE,
+    CC_LEVELS,
+    FIGSIZE,
+    RED,
+    compute_ci_from_dir,
+    data_dir_for,
+    grid_style,
+    legend_pos,
 )
 
 colors = [RED, BLUE, "#4daf4a", "#984ea3", "#ff7f00"]
@@ -33,11 +33,11 @@ for size, dist in combos:
 
     for (label, data_dir), color, marker in zip(levels, colors, markers):
         if not os.path.isdir(data_dir):
-            print(f"Warning: directory not found: {data_dir}")
+            print(f"  Warning: directory not found: {data_dir}")
             continue
         times, means, cis = compute_ci_from_dir(data_dir)
         if not times:
-            print(f"Warning: no data for {label} at {data_dir}")
+            print(f"  Warning: no data for {label} at {data_dir}")
             continue
         all_times.extend(times)
         markevery = [i for i, t in enumerate(times) if t % 3 == 0]
@@ -78,6 +78,6 @@ for size, dist in combos:
 
     output = f"charts/cloud/exp3/{size}/{dist}/compare-throughput-ci.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
     print(f"Saved to {output}")
     plt.close(fig)

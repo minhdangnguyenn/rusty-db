@@ -6,13 +6,13 @@ import sys
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import (
-    FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
-    exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
-    grid_style,  # pyright: ignore[reportAttributeAccessIssue]
-    legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
-    load_csv,  # pyright: ignore[reportAttributeAccessIssue]
+from plot.config import (
+    FIGSIZE,
+    NAVY,
+    LIGHT_RED,
+    grid_style,
+    legend_pos,
+    load_csv,
 )
 
 
@@ -43,7 +43,7 @@ def main():
         marker="o",
         markevery=[-1] if single else markers,
         label="Hit ratio",
-        color=exp1_color,
+        color=NAVY,
     )
     ax.plot(
         t,
@@ -73,7 +73,7 @@ def main():
         or f"charts/{os.path.splitext(os.path.basename(args.csv))[0]}-cache-hit-rate.png"
     )
     os.makedirs("charts", exist_ok=True)
-    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.savefig(output)
 
 
 if __name__ == "__main__":
