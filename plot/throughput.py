@@ -27,7 +27,7 @@ def main():
     t = [r["time_s"] for r in data]
     tps = [r["throughput"] for r in data]
 
-    fig, ax = plt.subplots(figsize=FIGSIZE)
+    _ , ax = plt.subplots(figsize=FIGSIZE)
     ax.plot(t, tps, color=args.color, linewidth=2, marker=args.marker, label=label)
     ax.fill_between(t, tps, color=args.color, alpha=0.1)
 

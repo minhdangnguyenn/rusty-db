@@ -9,7 +9,7 @@ from config import (
     FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
+    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
@@ -59,12 +59,12 @@ def main():
 
     if t2:
         max_t = max(max_t, max(t2))
-        ax2.plot(t2, m2, color=exp2_color, linewidth=2, label=args.label2)
+        ax2.plot(t2, m2, color=LIGHT_RED, linewidth=2, label=args.label2)
         ax2.fill_between(
             t2,
             [a - b for a, b in zip(m2, c2)],
             [a + b for a, b in zip(m2, c2)],
-            color=exp2_color,
+            color=LIGHT_RED,
             alpha=0.2,
             label=f"{args.label2} 95% CI",
         )

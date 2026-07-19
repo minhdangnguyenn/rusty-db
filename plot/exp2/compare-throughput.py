@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
     FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
+    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -42,13 +42,13 @@ def main():
     fig, ax = plt.subplots(figsize=FIGSIZE)
 
     ax.plot(
-        t1, tp1, color=exp2_color, linewidth=2, marker="s", label=f"{args.label1} mean"
+        t1, tp1, color=LIGHT_RED, linewidth=2, marker="s", label=f"{args.label1} mean"
     )
     ax.fill_between(
         t1,
         lo1,
         hi1,
-        color=exp2_color,
+        color=LIGHT_RED,
         alpha=0.2,
         label=f"{args.label1} 95% CI",
     )

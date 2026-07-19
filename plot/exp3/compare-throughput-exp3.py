@@ -33,11 +33,11 @@ for size, dist in combos:
 
     for (label, data_dir), color, marker in zip(levels, colors, markers):
         if not os.path.isdir(data_dir):
-            print(f"  Warning: directory not found: {data_dir}")
+            print(f"Warning: directory not found: {data_dir}")
             continue
         times, means, cis = compute_ci_from_dir(data_dir)
         if not times:
-            print(f"  Warning: no data for {label} at {data_dir}")
+            print(f"Warning: no data for {label} at {data_dir}")
             continue
         all_times.extend(times)
         markevery = [i for i, t in enumerate(times) if t % 3 == 0]

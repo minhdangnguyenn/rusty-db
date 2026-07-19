@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
+    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
@@ -86,7 +86,7 @@ def main():
         yerr=b_err,
         capsize=3,
         label=args.label2,
-        color=exp2_color,
+        color=LIGHT_RED,
         zorder=2,
     )
 

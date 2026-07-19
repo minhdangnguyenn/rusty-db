@@ -50,11 +50,7 @@ def main():
     data_dir = args.dir
 
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in f and "avg" not in f
-    ]
+    csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
     print(f"Found {len(csvs)} CSV files")
 
     runs = [load_csv(f) for f in csvs]

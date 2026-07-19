@@ -13,7 +13,7 @@ from config import (
     PURPLE,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     load_csv,  # pyright: ignore[reportAttributeAccessIssue]
-    p99_color,  # pyright: ignore[reportAttributeAccessIssue]
+    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 
@@ -47,7 +47,7 @@ def main():
 
     metrics = ["p50_ms", "p90_ms", "p99_ms", "max"]
     labels = ["p50", "p90", "p99", "max"]
-    colors = [GREEN, ORANGE, p99_color, PURPLE]
+    colors = [GREEN, ORANGE, LIGHT_RED, PURPLE]
 
     means, cis = [], []
     for metric in metrics:

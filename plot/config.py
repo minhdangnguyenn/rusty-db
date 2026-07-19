@@ -5,11 +5,10 @@ import os
 
 GREEN = "#4CAF50"
 ORANGE = "#FF9800"
-p99_color = "#F44336"
 PURPLE = "#9C27B0"
 
 exp1_color = "#2196F3"
-exp2_color = "#F44336"
+LIGHT_RED = "#F44336"
 RED = "#e41a1c"
 BLUE = "#377eb8"
 

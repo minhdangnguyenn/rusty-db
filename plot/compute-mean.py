@@ -34,11 +34,7 @@ def main():
 
     data_dir = args.dir
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in f and "avg" not in f
-    ]
+    csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
 
     if not csvs:
         print("No CSV files found")

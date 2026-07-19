@@ -3,8 +3,8 @@ import math
 import os
 import sys
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+from matplotlib.ticker import MultipleLocator  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import (

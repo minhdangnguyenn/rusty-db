@@ -10,7 +10,7 @@ from config import (
     FIGSIZE,  # pyright: ignore[reportAttributeAccessIssue]
     compute_ci_from_dir,  # pyright: ignore[reportAttributeAccessIssue]
     exp1_color,  # pyright: ignore[reportAttributeAccessIssue]
-    exp2_color,  # pyright: ignore[reportAttributeAccessIssue]
+    LIGHT_RED,  # pyright: ignore[reportAttributeAccessIssue]
     grid_style,  # pyright: ignore[reportAttributeAccessIssue]
     legend_pos,  # pyright: ignore[reportAttributeAccessIssue]
 )
@@ -47,7 +47,7 @@ def main():
             t2,
             [a - b for a, b in zip(m2, c2)],
             [a + b for a, b in zip(m2, c2)],
-            color=exp2_color,
+            color=LIGHT_RED,
             alpha=0.2,
             label=f"{args.label2} 95% CI",
         )

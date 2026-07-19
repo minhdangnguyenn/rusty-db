@@ -12,9 +12,6 @@ from config import (  # pyright: ignore[reportAttributeAccessIssue]
 
 NUMERIC_COLS = ["throughput", "txns"]
 
-# CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
-
-
 def data_dir_for(label, size, dist):
     if label == "c16":
         return f"csv/cloud/exp1/cache/{size}/{dist}"
@@ -34,12 +31,7 @@ if __name__ == "__main__":
                     continue
 
                 csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
-                csvs = [
-                    f
-                    for f in csvs
-                    if "summary" not in os.path.basename(f)
-                    and "avg" not in os.path.basename(f)
-                ]
+                csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
                 if not csvs:
                     print(f"  Warning: no CSVs in {data_dir}")
                     continue
