@@ -4,7 +4,7 @@ import os
 import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
-from matplotlib.ticker import MultipleLocator  # pyright: ignore[reportMissingImports]
+from matplotlib.ticker import FuncFormatter, MultipleLocator  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from plot.config import (
@@ -132,7 +132,7 @@ def add_measured(ax, ks, rt_meas, rt_lo, rt_hi):
 
 
 def add_predicted(ax, ks, rt_mmm):
-    ax.plot(ks, rt_mmm, color=GREEN, marker="s", label="M/M/m predicted", **LINE_STYLE)
+    ax.plot(ks, rt_mmm, color=GREEN, marker="s", label="Predicted", **LINE_STYLE)
 
 
 def add_break_marks(ax_top, ax_bot):
@@ -181,7 +181,7 @@ def plot_single(ks, rt_meas, rt_lo, rt_hi, rt_mmm, valid_vals):
 def plot_broken(ks, rt_meas, rt_lo, rt_hi, rt_mmm, break_low, break_high, y_max, finite_meas):
     fig, (ax_top, ax_bot) = plt.subplots(
         2, 1, sharex=True,
-        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.25},
+        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.1},
         figsize=(FIGSIZE[0], FIGSIZE[1] * 2),
     )
 
@@ -212,7 +212,7 @@ def plot_broken(ks, rt_meas, rt_lo, rt_hi, rt_mmm, break_low, break_high, y_max,
 
     add_break_marks(ax_top, ax_bot)
     fig.subplots_adjust(left=0.12, right=0.85, top=0.93, bottom=0.15)
-    fig.text(0.02, 0.5, "Response time [ms]", va="center", rotation="vertical", fontsize=11)
+    fig.text(0.05, 0.5, "Response time [ms]", va="center", rotation="vertical", fontsize=11)
     return fig
 
 

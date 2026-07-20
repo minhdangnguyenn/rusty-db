@@ -4,7 +4,7 @@ import os
 import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
-from matplotlib.ticker import MultipleLocator  # pyright: ignore[reportMissingImports]
+from matplotlib.ticker import FuncFormatter, MultipleLocator  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from plot.config import (
@@ -101,7 +101,7 @@ def nice_step(max_val, target_bins=10):
 
 
 def add_measured(ax, ks, means, ci_lo, ci_hi):
-    ax.plot(ks, means, color=RED, marker="o", label="Measured \u00b1 95% CI", **LINE_STYLE)
+    ax.plot(ks, means, color=RED, marker="o", label="Measured", **LINE_STYLE)
     ax.errorbar(
         ks, means,
         yerr=[[means[i] - ci_lo[i] for i in range(len(ks))],
@@ -111,7 +111,7 @@ def add_measured(ax, ks, means, ci_lo, ci_hi):
 
 
 def add_predicted(ax, ks, mmm_pred):
-    ax.plot(ks, mmm_pred, color=GREEN, marker="s", label="M/M/m predicted", **LINE_STYLE)
+    ax.plot(ks, mmm_pred, color=GREEN, marker="s", label="Predicted", **LINE_STYLE)
 
 
 def add_break_marks(ax_top, ax_bot):
@@ -141,7 +141,7 @@ def format_axes(ax, ks, valid_vals, title="M/M/m throughput"):
     ax.set_xlim(left=0)
     ax.set_ylim(bottom=0)
     ax.yaxis.set_major_locator(MultipleLocator(nice_step(max(valid_vals))))
-    ax.ticklabel_format(axis="y", style="plain", useOffset=False)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
 
@@ -159,7 +159,7 @@ def plot_single(ks, means, ci_lo, ci_hi, mmm_pred, valid_vals):
 def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max, finite_meas):
     fig, (ax_top, ax_bot) = plt.subplots(
         2, 1, sharex=True,
-        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.25},
+        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.1},
         figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1] * 2),
     )
 
@@ -167,8 +167,8 @@ def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max,
     add_measured(ax_top, ks, means, ci_lo, ci_hi)
     ax_top.set_ylim(break_high, y_max)
     ax_top.yaxis.set_major_locator(MultipleLocator(nice_step(y_max - break_high)))
+    ax_top.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
     ax_top.set_title("M/M/m throughput")
-    ax_top.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax_top.grid(True, **grid_style)
     ax_top.spines["bottom"].set_visible(False)
     ax_top.tick_params(bottom=False)
@@ -180,7 +180,7 @@ def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max,
     valid_bot = [v for v in finite_meas if v <= break_low]
     if valid_bot:
         ax_bot.yaxis.set_major_locator(MultipleLocator(nice_step(max(valid_bot))))
-    ax_bot.ticklabel_format(axis="y", style="plain", useOffset=False)
+    ax_bot.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
     ax_bot.grid(True, **grid_style)
     ax_bot.spines["top"].set_visible(False)
     ax_bot.tick_params(top=False)
@@ -190,7 +190,7 @@ def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max,
 
     add_break_marks(ax_top, ax_bot)
     fig.subplots_adjust(left=0.12, right=0.85, top=0.93, bottom=0.15)
-    fig.text(0.02, 0.5, "Throughput [txns/s]", va="center", rotation="vertical", fontsize=11)
+    fig.text(0.05, 0.5, "Throughput [txns/s]", va="center", rotation="vertical", fontsize=11)
     return fig
 
 
