@@ -256,7 +256,7 @@ def main():
 
         os.makedirs(OUT_DIR, exist_ok=True)
         out_path = f"{OUT_DIR}mmm-responsetime-{size}-{dist}.png"
-        plt.savefig(out_path, dpi=600)
+        plt.savefig(out_path, dpi=300)
         print(f"Saved to {out_path}")
         plt.close(fig)
 

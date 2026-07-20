@@ -147,7 +147,7 @@ def format_axes(ax, ks, valid_vals, title="M/M/m throughput"):
 
 
 def plot_single(ks, means, ci_lo, ci_hi, mmm_pred, valid_vals):
-    fig, ax = plt.subplots(figsize=FIGSIZE)
+    fig, ax = plt.subplots(figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1]))
     add_measured(ax, ks, means, ci_lo, ci_hi)
     add_predicted(ax, ks, mmm_pred)
     format_axes(ax, ks, valid_vals)
@@ -160,7 +160,7 @@ def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max,
     fig, (ax_top, ax_bot) = plt.subplots(
         2, 1, sharex=True,
         gridspec_kw={"height_ratios": [1, 1], "hspace": 0.25},
-        figsize=(FIGSIZE[0], FIGSIZE[1] * 2),
+        figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1] * 2),
     )
 
     # Top: measured (higher values)
@@ -235,7 +235,7 @@ def main():
 
         os.makedirs(OUT_DIR, exist_ok=True)
         out_path = f"{OUT_DIR}mmm-throughput-{size}-{dist}.png"
-        plt.savefig(out_path, dpi=600)
+        plt.savefig(out_path, dpi=300)
         print(f"Saved to {out_path}")
         plt.close(fig)
 
