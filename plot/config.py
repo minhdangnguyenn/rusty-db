@@ -19,7 +19,7 @@ FIGSIZE = (12, 5)
 
 # t-distribution table for 95% ci with small samples
 # key = degrees of freedom (n - 1), value = t-critical
-# n=5 runs -> df=4 -> t=3.2.776 (wider than z=1.96 for small samples)
+# n=5 runs -> df=4 -> t=2.776 (wider than z=1.96 for small samples)
 T_TABLE = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571}
 CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 M = [4, 8, 16, 32, 64]
