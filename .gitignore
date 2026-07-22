@@ -11,7 +11,7 @@
 # Terraform GitIgnore
 
 # 1. Local Secrets & Keys
-/terraform/keys
+/terraform/keys/*.json
 __pycache__
 *.json
 
