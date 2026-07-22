@@ -211,9 +211,8 @@ def main():
 
         mu = estimate_mu(size, dist)
         if mu is None:
-            print(f"Warning: no c1 data for {size}/{dist}, falling back to heuristic",
-                  file=sys.stderr)
-            mu = max(means[i] / M[i] for i in range(len(means))) / 0.95
+            print(f"Error: no c1 data for {size}/{dist}, skipping", file=sys.stderr)
+            continue
         else:
             print(f"({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
 
