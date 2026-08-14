@@ -1,4 +1,4 @@
-use std::io::{BufReader, BufWriter, Write as _};
+use std::io::{self, BufReader, BufWriter, Write as _};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
@@ -26,7 +26,39 @@ pub struct Client {
 impl Client {
     /// Connects to a toyDB server, creating a new client.
     pub fn connect(addr: impl ToSocketAddrs) -> Result<Self> {
-        let socket = TcpStream::connect(addr)?;
+        Self::connect_timeout(addr, None)
+    }
+
+    /// Connects to a toyDB server with an optional connect/read/write timeout.
+    /// A timeout prevents clients from blocking forever when a server stops
+    /// responding (e.g. after a Raft message is dropped), which otherwise
+    /// leaves benchmark workers hung indefinitely.
+    pub fn connect_timeout(addr: impl ToSocketAddrs, timeout: Option<Duration>) -> Result<Self> {
+        let socket = match timeout {
+            Some(timeout) => {
+                let mut socket = None;
+                let mut last_err = None;
+                for addr in addr.to_socket_addrs()? {
+                    match TcpStream::connect_timeout(&addr, timeout) {
+                        Ok(s) => {
+                            socket = Some(s);
+                            break;
+                        }
+                        Err(err) => last_err = Some(err),
+                    }
+                }
+                socket.ok_or_else(|| {
+                    last_err.unwrap_or_else(|| {
+                        io::Error::new(io::ErrorKind::NotConnected, "no addresses to connect to")
+                    })
+                })?
+            }
+            None => TcpStream::connect(addr)?,
+        };
+        if let Some(timeout) = timeout {
+            socket.set_read_timeout(Some(timeout))?;
+            socket.set_write_timeout(Some(timeout))?;
+        }
         let reader = BufReader::new(socket.try_clone()?);
         let writer = BufWriter::new(socket);
         Ok(Self { reader, writer, txn: None })

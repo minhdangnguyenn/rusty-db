@@ -76,6 +76,10 @@ struct Runner {
     #[arg(long, default_value = "30")]
     duration: f64,
 
+    /// Socket connect/read/write timeout in seconds (0 disables the timeout).
+    #[arg(long, default_value = "10")]
+    timeout: u64,
+
     /// Seed to use for random number generation.
     #[arg(short, long, default_value = "16791084677885396490")]
     seed: u64,
@@ -96,7 +100,8 @@ impl Runner {
     /// runs the specified workload.
     fn run<W: Workload>(self, workload: W) -> Result<()> {
         let mut rng = StdRng::seed_from_u64(self.seed);
-        let mut client = Client::connect(&self.hosts[0])?;
+        let timeout = if self.timeout > 0 { Some(Duration::from_secs(self.timeout)) } else { None };
+        let mut client = Client::connect_timeout(&self.hosts[0], timeout)?;
 
         // ensure output directory exists.
         create_dir_all(&self.out_dir)?;
@@ -161,7 +166,7 @@ impl Runner {
             let (done_tx, done_rx) = crossbeam::channel::bounded::<()>(0);
 
             for addr in self.hosts.iter().cycle().take(self.concurrency) {
-                let mut client = Client::connect(addr)?;
+                let mut client = Client::connect_timeout(addr, timeout)?;
                 let mut recorder = hist.recorder();
                 let work_rx = work_rx.clone();
                 let done_tx = done_tx.clone();

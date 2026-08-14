@@ -19,7 +19,7 @@ use crate::storage;
 
 /// The outbound Raft peer channel capacity. This buffers messages when a Raft
 /// peer is slow or unavailable. Beyond this, messages will be dropped.
-const RAFT_PEER_CHANNEL_CAPACITY: usize = 1000;
+const RAFT_PEER_CHANNEL_CAPACITY: usize = 50_000;
 
 /// The retry interval when connecting to a Raft peer.
 const RAFT_PEER_RETRY_INTERVAL: Duration = Duration::from_secs(1);
