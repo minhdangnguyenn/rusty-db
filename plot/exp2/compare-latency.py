@@ -1,14 +1,18 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 import numpy as np  # pyright: ignore[reportMissingImports]
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from plot.config import (
-    NAVY,
     LIGHT_RED,
+    NAVY,
     grid_style,
     legend_pos,
     load_csv,
@@ -17,11 +21,12 @@ from plot.config import (
 
 def main():
     parser = argparse.ArgumentParser(description="Compare latency of two averaged CSVs")
-    parser.add_argument("csv1", help="first avg CSV")
-    parser.add_argument("csv2", help="second avg CSV")
-    parser.add_argument("--label1", default="FIFO")
-    parser.add_argument("--label2", default="LRU")
-    parser.add_argument("-o", "--output", default=None)
+    parser.add_argument("csv1", help="first avg CSV", type=str)
+    parser.add_argument("csv2", help="second avg CSV", type=str)
+    parser.add_argument("--label1", default="FIFO", type=str)
+    parser.add_argument("--label2", default="LRU", type=str)
+    parser.add_argument("-o", "--output", default=None, type=str)
+
     args = parser.parse_args()
 
     csv1 = load_csv(args.csv1)
