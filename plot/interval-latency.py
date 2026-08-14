@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
-import matplotlib.ticker as ticker  # pyright: ignore[reportMissingImports]
+from matplotlib import ticker  # pyright: ignore[reportMissingImports]
 
 # from matplotlib.path import Path  # pyright: ignore[reportMissingImports]
 
@@ -23,7 +23,7 @@ from plot.config import (
     Y_FLOOR_MS,
     grid_style,
     load_csv,
-    log_ci,
+    log_ci,  # pyright: ignore[reportUnknownVariableType]
 )
 
 
@@ -31,11 +31,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Latency confidence interval as bar chart"
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "dir",
         nargs="?",
         default="csv/cloud/exp1/cache/l/uniform",
         help="path to directory of experiment CSV files",
+        type=str,
     )
     args = parser.parse_args()
     data_dir = args.dir
@@ -51,7 +52,7 @@ def main():
     labels = ["p50", "p90", "p99", "max"]
     colors = [GREEN, ORANGE, LIGHT_RED, PURPLE]
 
-    from matplotlib.path import Path as MatPath
+    from matplotlib.path import Path as MatPath  # pyright: ignore[reportMissingImports]
 
     rect_marker = MatPath(
         [(-0.9, -0.3), (0.9, -0.3), (0.9, 0.3), (-0.9, 0.3), (-0.9, -0.3)]
@@ -81,7 +82,8 @@ def main():
         m_draw = max(m, Y_FLOOR_MS)
         err_lo = max(m_draw - max(m - lo_, Y_FLOOR_MS), 0.0)
         err_up = max(max(m + up, Y_FLOOR_MS) - m_draw, 0.0)
-        ax.errorbar(
+
+        _ = ax.errorbar(  # pyright: ignore[reportUnusedCallResult]
             x,
             m_draw,
             yerr=[[err_lo], [err_up]],
@@ -92,7 +94,7 @@ def main():
             capthick=2.5,
             zorder=1,
         )
-        ax.plot(
+        _ = ax.plot(  # pyright: ignore[reportUnusedCallResult]
             [x],
             [m_draw],
             marker=rect_marker,
@@ -102,7 +104,7 @@ def main():
             markeredgewidth=1.5,
             zorder=3,
         )
-        ax.text(
+        ax.text(  # pyright: ignore[reportUnusedCallResult]
             x,
             m_draw,
             f"{m_draw:.1f}",

@@ -2,6 +2,7 @@ import csv
 import glob
 import math
 import os
+from typing import Any
 
 GREEN = "#4CAF50"
 ORANGE = "#FF9800"
@@ -28,7 +29,7 @@ CC_LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 M = [4, 8, 16, 32, 64]
 
 
-def load_csv(path):
+def load_csv(path: str) -> list[dict[float | str, Any]]:
     rows = []
     with open(path) as f:
         reader = csv.DictReader(f)
