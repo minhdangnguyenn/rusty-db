@@ -5,6 +5,7 @@ import os
 import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+import matplotlib.ticker as ticker  # pyright: ignore[reportMissingImports]
 from matplotlib.path import Path  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -45,7 +46,7 @@ def main():
     colors = [GREEN, ORANGE, LIGHT_RED, PURPLE]
 
     rect_marker = Path(
-        [(-0.75, -0.15), (0.75, -0.15), (0.75, 0.15), (-0.75, 0.15), (-0.75, -0.15)]
+        [(-0.9, -0.3), (0.9, -0.3), (0.9, 0.3), (-0.9, 0.3), (-0.9, -0.3)]
     )
 
     means, err_low, err_up = [], [], []
@@ -61,32 +62,49 @@ def main():
     top = 10 ** math.ceil(math.log10(max(m + u for m, u in zip(means, err_up))))
     bot = 10 ** math.floor(math.log10(min(m - l for m, l in zip(means, err_low))))
     ax.set_ylim(bottom=bot, top=top)
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, pos: f"{v:g}"))
+    ax.minorticks_off()
 
-    for label, m, lo_, up, color in zip(labels, means, err_low, err_up, colors):
+    for i, (label, m, lo_, up, color) in enumerate(
+        zip(labels, means, err_low, err_up, colors)
+    ):
+        x = float(i)
         ax.errorbar(
-            label,
+            x,
             m,
             yerr=[[lo_], [up]],
-            fmt="",
-            marker=rect_marker,
-            ms=12,
-            markeredgewidth=1.5,
+            fmt="none",
+            ecolor=color,
+            elinewidth=2.5,
             capsize=8,
             capthick=2.5,
-            elinewidth=2.5,
-            color=color,
+            zorder=1,
         )
-        ax.annotate(
+        ax.plot(
+            [x],
+            [m],
+            marker=rect_marker,
+            ms=24,
+            color="white",
+            markeredgecolor=color,
+            markeredgewidth=1.5,
+            zorder=3,
+        )
+        ax.text(
+            x,
+            m,
             f"{m:.1f}",
-            (label, m),
-            textcoords="offset points",
-            xytext=(0, 10),
             ha="center",
-            fontsize=9,
+            va="center",
+            fontsize=8,
+            color="black",
+            zorder=4,
         )
 
     ax.set_ylabel("Latency [ms]")
     ax.set_xlabel("Percentiles")
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels)
     ax.set_title("Latency percentiles with 95% CI")
     ax.grid(True, axis="y", **grid_style)
     plt.tight_layout()
