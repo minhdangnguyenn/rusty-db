@@ -11,7 +11,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from plot.config import (
     FIGSIZE,
     NAVY,
-    compute_ci_from_dir,
+    compute_ci_from_dir,  # pyright: ignore[reportUnknownVariableType]
     grid_style,
     legend_pos,
 )
