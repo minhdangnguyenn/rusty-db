@@ -3,10 +3,15 @@ import glob
 import math
 import os
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 import matplotlib.ticker as ticker  # pyright: ignore[reportMissingImports]
-from matplotlib.path import Path  # pyright: ignore[reportMissingImports]
+
+# from matplotlib.path import Path  # pyright: ignore[reportMissingImports]
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 
 sys.path.insert(0, os.path.dirname(__file__))
 from plot.config import (
@@ -46,7 +51,9 @@ def main():
     labels = ["p50", "p90", "p99", "max"]
     colors = [GREEN, ORANGE, LIGHT_RED, PURPLE]
 
-    rect_marker = Path(
+    from matplotlib.path import Path as MatPath
+
+    rect_marker = MatPath(
         [(-0.9, -0.3), (0.9, -0.3), (0.9, 0.3), (-0.9, 0.3), (-0.9, -0.3)]
     )
 
@@ -63,7 +70,7 @@ def main():
     top = 10 ** math.ceil(math.log10(max(m + u for m, u in zip(means, err_up))))
     bot = 10 ** math.floor(math.log10(min(m - l for m, l in zip(means, err_low))))
     bot = max(bot, Y_FLOOR_MS)
-    ax.set_ylim(bottom=bot, top=top)
+    ax.set_ylim(bottom=bot, top=top * 1.5)
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, pos: f"{v:g}"))
     ax.minorticks_off()
 
