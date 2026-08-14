@@ -55,6 +55,22 @@ def mean_ci(vals):
     return mean, mean - half, mean + half
 
 
+def log_ci(vals):
+    # Compute the mean and 95% CI on a log scale, then back-transform. This
+    # keeps the interval strictly positive, which matters for latency data
+    # with heavy tails (e.g. p99) where the arithmetic CI can go negative.
+    logs = [math.log10(v) for v in vals]
+    n = len(logs)
+    mean_log = sum(logs) / n
+    mean = 10**mean_log
+    if n < 2:
+        return mean, mean, mean
+    var = sum((x - mean_log) ** 2 for x in logs) / (n - 1)
+    std = math.sqrt(var)
+    half = t_critical(n) * std / math.sqrt(n)
+    return mean, 10 ** (mean_log - half), 10 ** (mean_log + half)
+
+
 def compute_ci_from_dir(data_dir):
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
     csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
