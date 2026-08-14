@@ -19,7 +19,7 @@ from plot.config import (
 
 def main():
     parser = argparse.ArgumentParser(description="confidence interval of experiments")
-    parser.add_argument(
+    _ = parser.add_argument(
         "dir",
         nargs="?",
         help="path to directory of experiment CSV file",
