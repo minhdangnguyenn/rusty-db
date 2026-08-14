@@ -1,3 +1,5 @@
+# export TOYDB_HOSTS="10.0.0.2:9601,10.0.0.3:9602,10.0.0.5:9603,10.0.0.6:9604,10.0.0.4:9605"
+
 echo "=== Getting internal IPs ==="
 HOSTS=""
 ZONE="${1:-europe-west3-c}"

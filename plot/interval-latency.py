@@ -15,6 +15,7 @@ from plot.config import (
     LIGHT_RED,
     ORANGE,
     PURPLE,
+    Y_FLOOR_MS,
     grid_style,
     load_csv,
     log_ci,
@@ -61,6 +62,7 @@ def main():
     ax.set_yscale("log")
     top = 10 ** math.ceil(math.log10(max(m + u for m, u in zip(means, err_up))))
     bot = 10 ** math.floor(math.log10(min(m - l for m, l in zip(means, err_low))))
+    bot = max(bot, Y_FLOOR_MS)
     ax.set_ylim(bottom=bot, top=top)
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, pos: f"{v:g}"))
     ax.minorticks_off()
@@ -69,10 +71,13 @@ def main():
         zip(labels, means, err_low, err_up, colors)
     ):
         x = float(i)
+        m_draw = max(m, Y_FLOOR_MS)
+        err_lo = max(m_draw - max(m - lo_, Y_FLOOR_MS), 0.0)
+        err_up = max(max(m + up, Y_FLOOR_MS) - m_draw, 0.0)
         ax.errorbar(
             x,
-            m,
-            yerr=[[lo_], [up]],
+            m_draw,
+            yerr=[[err_lo], [err_up]],
             fmt="none",
             ecolor=color,
             elinewidth=2.5,
@@ -82,7 +87,7 @@ def main():
         )
         ax.plot(
             [x],
-            [m],
+            [m_draw],
             marker=rect_marker,
             ms=24,
             color="white",
@@ -92,8 +97,8 @@ def main():
         )
         ax.text(
             x,
-            m,
-            f"{m:.1f}",
+            m_draw,
+            f"{m_draw:.1f}",
             ha="center",
             va="center",
             fontsize=8,

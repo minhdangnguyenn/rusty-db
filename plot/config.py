@@ -17,6 +17,9 @@ grid_style = {"linestyle": "--", "alpha": 0.3}
 
 FIGSIZE = (12, 5)
 
+# minimum bottom of latency y-axis [ms]; values below are clamped when drawn
+Y_FLOOR_MS = 0.1
+
 # t-distribution table for 95% ci with small samples
 # key = sample size n, value = t-critical with df = n - 1
 # n=5 runs -> df=4 -> t=2.776 (wider than z=1.96 for small samples)
