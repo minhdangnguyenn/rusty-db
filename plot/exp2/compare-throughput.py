@@ -1,14 +1,17 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from plot.config import (
     FIGSIZE,
-    NAVY,
     LIGHT_RED,
+    NAVY,
     grid_style,
     legend_pos,
     load_csv,
@@ -52,9 +55,7 @@ def main():
         alpha=0.2,
         label=f"{args.label1} 95% CI",
     )
-    ax.plot(
-        t2, tp2, color=NAVY, linewidth=2, marker="^", label=f"{args.label2} mean"
-    )
+    ax.plot(t2, tp2, color=NAVY, linewidth=2, marker="^", label=f"{args.label2} mean")
     ax.fill_between(
         t2,
         lo2,

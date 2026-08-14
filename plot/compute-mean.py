@@ -3,8 +3,10 @@ import csv
 import glob
 import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 from plot.config import load_csv, mean_ci
 
 NUMERIC_COLS = [
@@ -28,8 +30,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Average multiple experiment runs into one CSV"
     )
-    parser.add_argument("dir", help="directory containing experiment runs")
-    parser.add_argument("-o", "--output", default=None)
+    parser.add_argument("dir", help="directory containing experiment runs", type=str)  # pyright: ignore[reportUnusedCallResult]
+    parser.add_argument("-o", "--output", default=None, type=str)  # pyright: ignore[reportUnusedCallResult]
     args = parser.parse_args()
 
     data_dir = args.dir
