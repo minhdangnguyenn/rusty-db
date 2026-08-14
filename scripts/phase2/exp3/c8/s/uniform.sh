@@ -1,0 +1,9 @@
+ID=${1:-1}
+cd /opt/toydb
+HOST_FLAG=""
+[ -n "${TOYDB_HOSTS:-}" ] && HOST_FLAG="-H $TOYDB_HOSTS"
+./target/release/workload $HOST_FLAG \
+  --experiment exp3-c8-s-uniform --id "$ID" \
+  --out-dir /opt/toydb/csv \
+  -c 8 \
+  read --rows 1000 --cache
