@@ -9,8 +9,8 @@ import numpy as np  # pyright: ignore[reportMissingImports]
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from plot.config import (
-    NAVY,
     LIGHT_RED,
+    NAVY,
     grid_style,
     legend_pos,
     load_csv,

@@ -3,8 +3,10 @@ import math
 import os
 import sys
 
-import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
-from matplotlib.ticker import FuncFormatter, MultipleLocator  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt
+from matplotlib.ticker import (
+    MultipleLocator,
+)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from plot.config import (
@@ -25,20 +27,20 @@ FACT = [math.factorial(n) for n in range(65)]
 NOCACHE_DIR = "csv/cloud/exp3-nocache"
 OUT_DIR = "charts/cloud/exp3/"
 
-LINE_STYLE = dict(linewidth=1.5, markersize=8)
+LINE_STYLE = {"linewidth": 1.5, "markersize": 8}
 
 
 # ---------------------------------------------------------------------------
 # M/M/m model helpers
 # ---------------------------------------------------------------------------
 
+
 def response_time_mmm(m, lam, mu):
     """Mean response time for a closed M/M/m queue."""
     p = min(lam / (m * mu), 0.9999)
     mp = m * p
     p0 = 1.0 / (
-        1 + sum(mp**n / FACT[n] for n in range(1, m))
-        + mp**m / (FACT[m] * (1 - p))
+        1 + sum(mp**n / FACT[n] for n in range(1, m)) + mp**m / (FACT[m] * (1 - p))
     )
     q = mp**m / (FACT[m] * (1 - p)) * p0
     return (1.0 / mu) * (1.0 + q / (m * (1 - p)))
@@ -73,6 +75,7 @@ def estimate_mu(size, dist):
 # ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
+
 
 def load_measured(size, dist):
     """Load measured throughput with 95% CI for each K level."""
@@ -112,6 +115,7 @@ def response_times(means, ci_lo, ci_hi, mu):
 # Plotting
 # ---------------------------------------------------------------------------
 
+
 def nice_step(max_val, target_bins=10):
     if max_val <= 0:
         return 1.0
@@ -124,10 +128,16 @@ def add_measured(ax, ks, rt_meas, rt_lo, rt_hi):
     ax.plot(ks, rt_meas, color=RED, marker="o", label="Measured", **LINE_STYLE)
     if rt_lo is not None and rt_hi is not None:
         ax.errorbar(
-            ks, rt_meas,
-            yerr=[[rt_meas[i] - rt_lo[i] for i in range(len(ks))],
-                  [rt_hi[i] - rt_meas[i] for i in range(len(ks))]],
-            fmt="none", color=RED, capsize=4, capthick=1.5,
+            ks,
+            rt_meas,
+            yerr=[
+                [rt_meas[i] - rt_lo[i] for i in range(len(ks))],
+                [rt_hi[i] - rt_meas[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=RED,
+            capsize=4,
+            capthick=1.5,
         )
 
 
@@ -137,7 +147,7 @@ def add_predicted(ax, ks, rt_mmm):
 
 def add_break_marks(ax_top, ax_bot):
     d = 0.015
-    kw = dict(color="k", clip_on=False)
+    kw = {"color": "k", "clip_on": False}
     ax_bot.plot((-d, +d), (1 - d, 1 + d), transform=ax_bot.transAxes, **kw)
     ax_bot.plot((-d, +d), (1 + d, 1 - d), transform=ax_bot.transAxes, **kw)
     ax_top.plot((-d, +d), (-d, +d), transform=ax_top.transAxes, **kw)
@@ -178,9 +188,13 @@ def plot_single(ks, rt_meas, rt_lo, rt_hi, rt_mmm, valid_vals):
     return fig
 
 
-def plot_broken(ks, rt_meas, rt_lo, rt_hi, rt_mmm, break_low, break_high, y_max, finite_meas):
+def plot_broken(
+    ks, rt_meas, rt_lo, rt_hi, rt_mmm, break_low, break_high, y_max, finite_meas
+):
     fig, (ax_top, ax_bot) = plt.subplots(
-        2, 1, sharex=True,
+        2,
+        1,
+        sharex=True,
         gridspec_kw={"height_ratios": [1, 1], "hspace": 0.1},
         figsize=(FIGSIZE[0], FIGSIZE[1] * 2),
     )
@@ -212,13 +226,16 @@ def plot_broken(ks, rt_meas, rt_lo, rt_hi, rt_mmm, break_low, break_high, y_max,
 
     add_break_marks(ax_top, ax_bot)
     fig.subplots_adjust(left=0.12, right=0.85, top=0.93, bottom=0.15)
-    fig.text(0.05, 0.5, "Response time [ms]", va="center", rotation="vertical", fontsize=11)
+    fig.text(
+        0.05, 0.5, "Response time [ms]", va="center", rotation="vertical", fontsize=11
+    )
     return fig
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     for size, dist in [
@@ -248,8 +265,17 @@ def main():
         all_vals = sorted(set(finite_meas + finite_mmm))
         if max_meas > 0 and max_mmm > 5 * max_meas:
             break_low, break_high = find_break(all_vals)
-            fig = plot_broken(ks, rt_meas, rt_lo, rt_hi, rt_mmm,
-                              break_low, break_high, max_mmm * 1.1, finite_meas)
+            fig = plot_broken(
+                ks,
+                rt_meas,
+                rt_lo,
+                rt_hi,
+                rt_mmm,
+                break_low,
+                break_high,
+                max_mmm * 1.1,
+                finite_meas,
+            )
         else:
             fig = plot_single(ks, rt_meas, rt_lo, rt_hi, rt_mmm, all_vals)
 

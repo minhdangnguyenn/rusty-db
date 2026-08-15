@@ -64,7 +64,7 @@ for size, dist in combos:
         continue
 
     end_tick = 30
-    ticks = list(range(0, end_tick + 1))
+    ticks = list(range(end_tick + 1))
     ax.set_xticks(ticks)
     ax.set_xlim([0, end_tick + 1])  # pyright: ignore[reportArgumentType]
     ax.set_ylim(bottom=0)

@@ -8,11 +8,11 @@ sys.path.insert(0, os.path.dirname(__file__))
 from plot.config import (  # noqa: E402
     FIGSIZE,
     GREEN,
+    LIGHT_RED,
     ORANGE,
     PURPLE,
     grid_style,
     load_csv,
-    LIGHT_RED,
 )
 
 

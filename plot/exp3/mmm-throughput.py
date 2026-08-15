@@ -4,7 +4,10 @@ import os
 import sys
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
-from matplotlib.ticker import FuncFormatter, MultipleLocator  # pyright: ignore[reportMissingImports]
+from matplotlib.ticker import (  # pyright: ignore[reportMissingImports]
+    FuncFormatter,
+    MultipleLocator,
+)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from plot.config import (
@@ -25,19 +28,19 @@ FACT = [math.factorial(n) for n in range(65)]
 NOCACHE_DIR = "csv/cloud/exp3-nocache"
 OUT_DIR = "charts/cloud/exp3/"
 
-LINE_STYLE = dict(linewidth=1.5, markersize=8)
+LINE_STYLE = {"linewidth": 1.5, "markersize": 8}
 
 
 # ---------------------------------------------------------------------------
 # M/M/m model helpers
 # ---------------------------------------------------------------------------
 
+
 def response_time_mmm(m, lam, mu):
     p = min(lam / (m * mu), 0.9999)
     mp = m * p
     p0 = 1.0 / (
-        1 + sum(mp**n / FACT[n] for n in range(1, m))
-        + mp**m / (FACT[m] * (1 - p))
+        1 + sum(mp**n / FACT[n] for n in range(1, m)) + mp**m / (FACT[m] * (1 - p))
     )
     q = mp**m / (FACT[m] * (1 - p)) * p0
     return (1.0 / mu) * (1.0 + q / (m * (1 - p)))
@@ -71,6 +74,7 @@ def estimate_mu(size, dist):
 # Data loading
 # ---------------------------------------------------------------------------
 
+
 def load_measured(size, dist):
     means, ci_lo, ci_hi = [], [], []
     for label in CC_LEVELS:
@@ -92,6 +96,7 @@ def load_measured(size, dist):
 # Plotting
 # ---------------------------------------------------------------------------
 
+
 def nice_step(max_val, target_bins=10):
     if max_val <= 0:
         return 1.0
@@ -103,10 +108,16 @@ def nice_step(max_val, target_bins=10):
 def add_measured(ax, ks, means, ci_lo, ci_hi):
     ax.plot(ks, means, color=RED, marker="o", label="Measured", **LINE_STYLE)
     ax.errorbar(
-        ks, means,
-        yerr=[[means[i] - ci_lo[i] for i in range(len(ks))],
-              [ci_hi[i] - means[i] for i in range(len(ks))]],
-        fmt="none", color=RED, capsize=4, capthick=1.5,
+        ks,
+        means,
+        yerr=[
+            [means[i] - ci_lo[i] for i in range(len(ks))],
+            [ci_hi[i] - means[i] for i in range(len(ks))],
+        ],
+        fmt="none",
+        color=RED,
+        capsize=4,
+        capthick=1.5,
     )
 
 
@@ -116,7 +127,7 @@ def add_predicted(ax, ks, mmm_pred):
 
 def add_break_marks(ax_top, ax_bot):
     d = 0.015
-    kw = dict(color="k", clip_on=False)
+    kw = {"color": "k", "clip_on": False}
     ax_bot.plot((-d, +d), (1 - d, 1 + d), transform=ax_bot.transAxes, **kw)
     ax_bot.plot((-d, +d), (1 + d, 1 - d), transform=ax_bot.transAxes, **kw)
     ax_top.plot((-d, +d), (-d, +d), transform=ax_top.transAxes, **kw)
@@ -156,9 +167,13 @@ def plot_single(ks, means, ci_lo, ci_hi, mmm_pred, valid_vals):
     return fig
 
 
-def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max, finite_meas):
+def plot_broken(
+    ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max, finite_meas
+):
     fig, (ax_top, ax_bot) = plt.subplots(
-        2, 1, sharex=True,
+        2,
+        1,
+        sharex=True,
         gridspec_kw={"height_ratios": [1, 1], "hspace": 0.1},
         figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1] * 2),
     )
@@ -190,13 +205,16 @@ def plot_broken(ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max,
 
     add_break_marks(ax_top, ax_bot)
     fig.subplots_adjust(left=0.12, right=0.85, top=0.93, bottom=0.15)
-    fig.text(0.05, 0.5, "Throughput [txns/s]", va="center", rotation="vertical", fontsize=11)
+    fig.text(
+        0.05, 0.5, "Throughput [txns/s]", va="center", rotation="vertical", fontsize=11
+    )
     return fig
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     for size, dist in [
@@ -216,7 +234,7 @@ def main():
         else:
             print(f"({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
 
-        ks = M[:len(means)]
+        ks = M[: len(means)]
         mmm_pred = [closed_throughput(ks[i], mu) for i in range(len(ks))]
 
         all_vals = sorted(set(means + mmm_pred))
@@ -227,8 +245,17 @@ def main():
 
         if max_mmm > 0 and max_meas > 5 * max_mmm:
             break_low, break_high = find_break(all_vals)
-            fig = plot_broken(ks, means, ci_lo, ci_hi, mmm_pred,
-                              break_low, break_high, max_meas * 1.1, finite_mmm)
+            fig = plot_broken(
+                ks,
+                means,
+                ci_lo,
+                ci_hi,
+                mmm_pred,
+                break_low,
+                break_high,
+                max_meas * 1.1,
+                finite_mmm,
+            )
         else:
             fig = plot_single(ks, means, ci_lo, ci_hi, mmm_pred, all_vals)
 
