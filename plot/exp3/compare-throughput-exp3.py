@@ -1,16 +1,19 @@
 import os
 import sys
+from pathlib import Path
 
-import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from plot.config import (
     BLUE,
     CC_LEVELS,
     FIGSIZE,
     RED,
     compute_ci_from_dir,
-    data_dir_for,
+    # data_dir_for,
     grid_style,
     legend_pos,
 )
@@ -25,6 +28,11 @@ combos = [
     ("s", "zipf"),
 ]
 
+
+def data_dir_for(label: str, size: str, dist: str) -> str:
+    return f"csv/p2/exp3/{label}/{size}/{dist}"
+
+
 for size, dist in combos:
     levels = [(label, data_dir_for(label, size, dist)) for label in CC_LEVELS]
 
@@ -33,11 +41,11 @@ for size, dist in combos:
 
     for (label, data_dir), color, marker in zip(levels, colors, markers):
         if not os.path.isdir(data_dir):
-            print(f"  Warning: directory not found: {data_dir}")
+            print(f"Warning: directory not found: {data_dir}")
             continue
         times, means, cis = compute_ci_from_dir(data_dir)
         if not times:
-            print(f"  Warning: no data for {label} at {data_dir}")
+            print(f"Warning: no data for {label} at {data_dir}")
             continue
         all_times.extend(times)
         markevery = [i for i, t in enumerate(times) if t % 3 == 0]
@@ -66,7 +74,7 @@ for size, dist in combos:
     end_tick = 30
     ticks = list(range(end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim([0, end_tick + 1])  # pyright: ignore[reportArgumentType]
+    ax.set_xlim(0, end_tick + 1)
     ax.set_ylim(bottom=0)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
@@ -76,7 +84,9 @@ for size, dist in combos:
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
-    output = f"charts/cloud/exp3/{size}/{dist}/compare-throughput-ci.png"
+    # output = f"charts/cloud/exp3/{size}/{dist}/compare-throughput-ci.png"
+    output = f"charts/p2/exp3/{size}/{dist}/compare-throughput-ci.png"
+
     os.makedirs(os.path.dirname(output), exist_ok=True)
     plt.savefig(output)
     print(f"Saved to {output}")

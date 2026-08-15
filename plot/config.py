@@ -78,38 +78,52 @@ def log_ci(vals: list[float]):
     return mean, 10 ** (mean_log - half), 10 ** (mean_log + half)
 
 
-def compute_ci_from_dir(data_dir: str) -> tuple[list[int], list[float], list[float]]:
+def compute_ci_from_dir(
+    data_dir: str,
+) -> tuple[list[int], list[float], list[float]]:
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
     csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
+
     runs = [load_csv(f) for f in csvs]
+
     if not runs:
         return [], [], []
+
     grid: dict[int, list[float]] = {}
+
     for run in runs:
         for row in run:
             t = round(float(row["time_s"]))
             throughput = float(row["throughput"])
             grid.setdefault(t, []).append(throughput)
-    times: list[int] = sorted(grid.keys())
+
+    times: list[int] = []
     means: list[float] = []
     cis: list[float] = []
 
-    for t in times:
-        vals: list[float] = grid[t]
+    for t in sorted(grid):
+        vals = grid[t]
+
         if len(vals) < 2:
             continue
+
         mean = sum(vals) / len(vals)
-        variance: float = sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)
 
-        std: float = cast(float, variance**0.5)
+        std = (sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
 
-        ci: float = cast(float, t_critical(len(vals)) * std / (len(vals) ** 0.5))
+        ci = t_critical(len(vals)) * std / (len(vals) ** 0.5)
+
+        times.append(t)
         means.append(mean)
         cis.append(ci)
+
     return times, means, cis
 
 
 def data_dir_for(label: str, size: str, dist: str):
+    """old function to get data directory for a given label, size, and distribution
+    this function was used in phase 1
+    """
     if label == "c16":
         return f"csv/cloud/exp1/cache/{size}/{dist}"
     return f"csv/cloud/exp3/{label}/{size}/{dist}"
