@@ -25,8 +25,8 @@ from plot.config import (
 
 FACT = [math.factorial(n) for n in range(65)]
 
-NOCACHE_DIR = "csv/cloud/exp3-nocache"
-OUT_DIR = "charts/cloud/exp3/"
+NOCACHE_DIR = "csv/p2/exp3-no-cache"
+OUT_DIR = "charts/p2/modelling/"
 
 LINE_STYLE = {"linewidth": 1.5, "markersize": 8}
 
@@ -59,7 +59,7 @@ def closed_throughput(m, mu):
 
 
 def estimate_mu(size, dist):
-    data_dir = f"{NOCACHE_DIR}/{dist}/c1/{size}"
+    data_dir: str = f"{NOCACHE_DIR}/c1/{size}/{dist}"
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
     csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
     if not csvs:
@@ -260,7 +260,7 @@ def main():
             fig = plot_single(ks, means, ci_lo, ci_hi, mmm_pred, all_vals)
 
         os.makedirs(OUT_DIR, exist_ok=True)
-        out_path = f"{OUT_DIR}mmm-throughput-{size}-{dist}.png"
+        out_path = f"{OUT_DIR}OLD-mmm-throughput-{size}-{dist}.png"
         plt.savefig(out_path, dpi=300)
         print(f"Saved to {out_path}")
         plt.close(fig)
