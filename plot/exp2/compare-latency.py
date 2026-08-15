@@ -8,7 +8,6 @@ from typing import cast
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
-from matplotlib.axes import Axes
 from matplotlib.path import Path as MatPath
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

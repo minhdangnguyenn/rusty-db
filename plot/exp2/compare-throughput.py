@@ -68,7 +68,10 @@ def main():
     end_tick = 30
     ticks = list(range(end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim(end_tick + 1)
+
+    max_time = max(t1 + t2)
+    ax.set_xlim(0, float(max_time) * 1.03)
+
     all_vals = tp1 + tp2 + lo1 + lo2 + hi1 + hi2
     y_max = max(all_vals) if all_vals else 1
     ax.set_ylim(0, float(y_max) * 1.5)
