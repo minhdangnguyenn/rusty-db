@@ -2,7 +2,7 @@ import csv
 import glob
 import math
 import os
-from typing import TypeAlias, cast
+from typing import TypeAlias
 
 GREEN = "#4CAF50"
 ORANGE = "#FF9800"
@@ -124,6 +124,4 @@ def data_dir_for(label: str, size: str, dist: str):
     """old function to get data directory for a given label, size, and distribution
     this function was used in phase 1
     """
-    if label == "c16":
-        return f"csv/cloud/exp1/cache/{size}/{dist}"
     return f"csv/cloud/exp3/{label}/{size}/{dist}"
