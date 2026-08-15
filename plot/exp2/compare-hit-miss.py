@@ -38,46 +38,48 @@ def main():
         ylabel = "Miss ratio [%]"
         title = "Miss ratio"
         t1 = [row["time_s"] for row in r1]
-        tp1 = [(1 - row["cache_hit_rate"]) * 100 for row in r1]
+        tp1 = [(1 - float(row["cache_hit_rate"])) * 100 for row in r1]
         lo1 = [
-            (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
+            (1 - float(row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]))) * 100
             for row in r1
         ]
         hi1 = [
-            (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
+            (1 - float(row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]))) * 100
             for row in r1
         ]
-        t2 = [row["time_s"] for row in r2]
-        tp2 = [(1 - row["cache_hit_rate"]) * 100 for row in r2]
+
+        t2 = [float(row["time_s"]) for row in r2]
+        tp2 = [(1 - float(row["cache_hit_rate"])) * 100 for row in r2]
         lo2 = [
-            (1 - row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
+            (1 - float(row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]))) * 100
             for row in r2
         ]
         hi2 = [
-            (1 - row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
+            (1 - float(row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]))) * 100
             for row in r2
         ]
     else:
         ylabel = "Hit ratio [%]"
         title = "Hit ratio"
-        t1 = [row["time_s"] for row in r1]
-        tp1 = [row["cache_hit_rate"] * 100 for row in r1]
+        t1 = [float(row["time_s"]) for row in r1]
+        tp1 = [float(row["cache_hit_rate"]) * 100 for row in r1]
         lo1 = [
-            row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100
+            float(row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
             for row in r1
         ]
         hi1 = [
-            row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100
+            float(row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
             for row in r1
         ]
-        t2 = [row["time_s"] for row in r2]
-        tp2 = [row["cache_hit_rate"] * 100 for row in r2]
+
+        t2 = [float(row["time_s"]) for row in r2]
+        tp2 = [float(row["cache_hit_rate"]) * 100 for row in r2]
         lo2 = [
-            row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"]) * 100
+            float(row.get("cache_hit_rate_ci_lower", row["cache_hit_rate"])) * 100
             for row in r2
         ]
         hi2 = [
-            row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"]) * 100
+            float(row.get("cache_hit_rate_ci_upper", row["cache_hit_rate"])) * 100
             for row in r2
         ]
 
@@ -105,10 +107,10 @@ def main():
     )
 
     end_tick = 30
-    ticks = list(range(0, end_tick + 1))
+    ticks = list(range(end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim([0, end_tick + 1])
-    ax.set_ylim([0, 100])
+    ax.set_xlim(0, end_tick + 1)
+    ax.set_ylim(0, 100 * 1.25)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel(ylabel)

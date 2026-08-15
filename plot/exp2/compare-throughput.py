@@ -42,7 +42,7 @@ def main():
     lo2 = [row.get("throughput_ci_lower", row["throughput"]) for row in r2]
     hi2 = [row.get("throughput_ci_upper", row["throughput"]) for row in r2]
 
-    fig, ax = plt.subplots(figsize=FIGSIZE)
+    _, ax = plt.subplots(figsize=FIGSIZE)
 
     ax.plot(
         t1, tp1, color=LIGHT_RED, linewidth=2, marker="s", label=f"{args.label1} mean"
@@ -66,12 +66,12 @@ def main():
     )
 
     end_tick = 30
-    ticks = list(range(0, end_tick + 1))
+    ticks = list(range(end_tick + 1))
     ax.set_xticks(ticks)
-    ax.set_xlim([0, end_tick + 1])
+    ax.set_xlim(end_tick + 1)
     all_vals = tp1 + tp2 + lo1 + lo2 + hi1 + hi2
     y_max = max(all_vals) if all_vals else 1
-    ax.set_ylim([0, y_max])
+    ax.set_ylim(0, float(y_max) * 1.5)
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Throughput [txns/s]")

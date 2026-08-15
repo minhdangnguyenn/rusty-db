@@ -3,11 +3,13 @@ import math
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
-import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
-import matplotlib.ticker as ticker  # pyright: ignore[reportMissingImports]
-import numpy as np  # pyright: ignore[reportMissingImports]
-from matplotlib.path import Path as MatPath  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import ticker
+from matplotlib.axes import Axes
+from matplotlib.path import Path as MatPath
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -25,16 +27,16 @@ def main():
     parser = argparse.ArgumentParser(
         description="Compare latency percentiles of two averaged CSVs"
     )
-    parser.add_argument("csv1", help="first avg CSV", type=str)
-    parser.add_argument("csv2", help="second avg CSV", type=str)
-    parser.add_argument("--label1", default="FIFO", type=str)
-    parser.add_argument("--label2", default="LRU", type=str)
-    parser.add_argument("-o", "--output", default=None, type=str)
+    _ = parser.add_argument("csv1", help="first avg CSV", type=str)
+    _ = parser.add_argument("csv2", help="second avg CSV", type=str)
+    _ = parser.add_argument("--label1", default="FIFO", type=str)
+    _ = parser.add_argument("--label2", default="LRU", type=str)
+    _ = parser.add_argument("-o", "--output", default=None, type=str)
 
     args = parser.parse_args()
 
-    csv1 = load_csv(args.csv1)
-    csv2 = load_csv(args.csv2)
+    csv1 = load_csv(cast(str, args.csv1))
+    csv2 = load_csv(cast(str, args.csv2))
 
     last1 = csv1[-1]
     last2 = csv2[-1]
@@ -45,16 +47,25 @@ def main():
     # ------------------------------------------------------------------
     # Data
     # ------------------------------------------------------------------
-    data1 = [last1[k] for k in keys]
-    data2 = [last2[k] for k in keys]
+    last1 = csv1[-1]
+    last2 = csv2[-1]
 
-    low1 = [max(0.0, last1.get(f"{k}_ci_lower", last1[k])) for k in keys]
-    high1 = [last1.get(f"{k}_ci_upper", last1[k]) for k in keys]
+    categories = ["p50", "p90", "p99", "max"]
+    keys = ["p50_ms", "p90_ms", "p99_ms", "max"]
 
-    low2 = [max(0.0, last2.get(f"{k}_ci_lower", last2[k])) for k in keys]
-    high2 = [last2.get(f"{k}_ci_upper", last2[k]) for k in keys]
+    data1: list[float] = [float(last1[k]) for k in keys]
+    data2: list[float] = [float(last2[k]) for k in keys]
 
-    # Deviation from center
+    low1: list[float] = [
+        max(0.0, float(last1.get(f"{k}_ci_lower", last1[k]))) for k in keys
+    ]
+    high1: list[float] = [float(last1.get(f"{k}_ci_upper", last1[k])) for k in keys]
+
+    low2: list[float] = [
+        max(0.0, float(last2.get(f"{k}_ci_lower", last2[k]))) for k in keys
+    ]
+    high2: list[float] = [float(last2.get(f"{k}_ci_upper", last2[k])) for k in keys]
+
     err1_low = np.array(data1) - np.array(low1)
     err1_high = np.array(high1) - np.array(data1)
 
@@ -64,9 +75,9 @@ def main():
     # ------------------------------------------------------------------
     # Figure
     # ------------------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(8, 5.5))
+    _, ax = plt.subplots(figsize=(8, 5.5))
 
-    ax.set_yscale("log")
+    ax.set_yscale("log")  # pyright: ignore[reportUnknownMemberType]
 
     x = np.arange(len(categories))
 
@@ -92,6 +103,7 @@ def main():
     # Plot FIFO
     # ------------------------------------------------------------------
     scale = 1.3
+
     for i, (x_pos, value, err_low, err_high) in enumerate(
         zip(x1, data1, err1_low, err1_high)
     ):
