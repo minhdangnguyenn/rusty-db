@@ -73,10 +73,10 @@ def estimate_mu(size, dist):
     """Estimate service rate from K=1 no-cache runs."""
 
     # Actual structure:
-    # csv/cloud/exp3-no-cache/c1/l/uniform/
-    # csv/cloud/exp3-no-cache/c1/l/zipf/
-    # csv/cloud/exp3-no-cache/c1/s/uniform/
-    # csv/cloud/exp3-no-cache/c1/s/zipf/
+    # csv/p2/exp3-no-cache/c1/l/uniform/
+    # csv/p2/exp3-no-cache/c1/l/zipf/
+    # csv/p2/exp3-no-cache/c1/s/uniform/
+    # csv/p2/exp3-no-cache/c1/s/zipf/
 
     data_dir = f"{NOCACHE_DIR}/c1/{size}/{dist}"
 
@@ -151,8 +151,8 @@ def load_no_cache(size, dist):
 
     for label in NOCACHE_LEVELS:
         # Actual structure:
-        # csv/p2/exp3-nocache/c4/l/uniform/
-        # csv/p2/exp3-nocache/c8/l/uniform/
+        # csv/p2/exp3-no-cache/c4/l/uniform/
+        # csv/p2/exp3-no-cache/c8/l/uniform/
         # ...
 
         data_dir = f"{NOCACHE_DIR}/{label}/{size}/{dist}"
