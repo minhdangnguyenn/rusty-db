@@ -1,2 +1,2 @@
 experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
-"exp3-c32-l-uniform",1,"read (rows=10000 size=64 batch=1 block=100 dist=uniform)","10.0.0.2:9601;10.0.0.3:9602;10.0.0.5:9603;10.0.0.6:9604;10.0.0.4:9605",32,100000,16791084677885396490,30.040,268770,8947.059,3.217407,8.691711,12.673023,92.995583,133129,135641,0.495327,30.0
+"exp3-c32-l-uniform",1,"read (rows=10000 size=64 batch=1 block=100 dist=uniform)","10.0.0.2:9601;10.0.0.3:9602;10.0.0.5:9603;10.0.0.6:9604;10.0.0.4:9605",32,100000,16791084677885396490,30.028,481011,16018.978,2.020351,4.845567,6.238207,122.552319,239092,241919,0.497061,30.0
