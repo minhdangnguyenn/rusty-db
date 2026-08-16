@@ -49,3 +49,62 @@ This is actually a good sanity proof: the bigger the network share of each trans
 - Same config otherwise (concurrency, count, rows, seed all identical), so it's not a concurrency parameter change.
 
 **Bottom line:** the jump comes from removing the public-internet hop by (a) running the loader inside the VPC and (b) talking to the `10.0.0.x` internal IPs. The CSVs' own `hosts` columns (`34.x.x.x` → `10.0.0.x`) are the smoking gun. For a fair cross-phase comparison in your report you'd want to note that **phase1 = remote loader over public IPs, phase2 = dedicated loader inside the VMs' network**, because the DB throughput itself didn't change between phases — the client path did.
+
+-------------------------------------------------------------------------------------------
+# WHY THROUGHPUT GROWTHS NOT LINEARLY IN SMALL DATASET (NOT LIKE BIG DATASET) ? (AI ANSWER)
+Good call to re-check — I need to correct one thing from my earlier answers first, then explain with the actual numbers.
+
+Correction on units
+
+My earlier "throughput" figures for the cache cases were actually the  txns  column (total over the ~30 s run), not per-second throughput. The shapes of the curves were right, but the absolute values were ~30× too high. The correct per-second numbers (CSV column  throughput , run 1) are:
+
+Small dataset, cache (rows=1000, uniform) — hit rate ≈ 99.998%:
+
+┌─────┬──────────────┐
+│ c   │ throughput   │
+├─────┼──────────────┤
+│ c4  │ 1,761,341 /s │
+│ c8  │ 1,727,893 /s │
+│ c16 │ 1,654,749 /s │
+│ c32 │ 1,127,480 /s │
+│ c64 │ 1,438,652 /s │
+└─────┴──────────────┘
+
+Large dataset, cache (rows=10000, uniform) — hit rate ≈ 49–50%:
+
+┌─────┬────────────┐
+│ c   │ throughput │
+├─────┼────────────┤
+│ c4  │ 2,888 /s   │
+│ c8  │ 5,215 /s   │
+│ c16 │ 10,892 /s  │
+│ c32 │ 16,019 /s  │
+│ c64 │ 22,076 /s  │
+└─────┴────────────┘
+
+The large case is ~linear in the middle (2.9K → 5.2K → 10.9K is doubling per doubling of concurrency) and starts to flatten at c32→c64 (1.4×). The small case is non-monotonic: peak at c4/c8, then it falls.
+
+The mechanism, from the code
+
+Two facts in the code explain everything:
+
+Fact 1 — each worker is a synchronous, closed-loop client. In  workload.rs  each worker gets its own TCP connection and loops:  recv(item)  → send query → block waiting for the full reply → record → repeat. So the number of requests in flight in the entire system is exactly  concurrency  (the channel only buffers work items, not responses). Nothing is pipelined.
+
+Fact 2 — every cache operation takes one global mutex. In  cache.rs , the cache is a process-global  LazyLock<Mutex<Cache>> .  Read::execute  calls  filter_uncached  (locks, looks up, counts) and  insert  (locks again) — so even a pure cache hit acquires the single lock shared by all workers.
+
+Why large ≈ linear
+
+In the large case, ~51% of requests miss the cache and pay a real round trip — TCP send → server → Raft/storage read → reply — measured at p50 ≈ 1.4–1.5 ms. That is ~10,000× larger than the mutex critical section (~50 ns). Consequences:
+1. The lock becomes irrelevant. Each worker holds the global lock for ~0.003% of its per-request time, so it's effectively uncontended — it stops being the bottleneck.
+2. The bottleneck is now the network + servers, and the number of in-flight requests scales with concurrency. Since workers are closed-loop, throughput ≈  concurrency / round-trip time  while the servers are unsaturated. Double the concurrency → double the in-flight requests → roughly double the throughput. That's the linear region you see.
+3. The flattening at c32→c64 is server saturation. As more requests pile up at the servers, queueing dominates — visible in the p50 rising from 1.4 ms (c4) to 2.9 ms (c64). That's exactly the M/M/m response-time growth, which is why the model fits this case.
+
+Why small is not linear
+
+In the small case, hit rate is 99.998% — only ~1,000 of ~30M+ requests ever touch the network (the CSVs show ~1,005–1,198 misses regardless of concurrency). So per-request time is almost entirely inside the process: lock → hashmap probe → unlock.
+
+Here the single global mutex is the only resource, and a mutex cannot be parallelized — all workers queue for it. You get linear growth only up to the point where the lock is saturated (c4–c8 fills the pipeline gaps: channel, RNG, histogram recording). Past that, extra threads add nothing but contention: cache-line ping-pong on the lock word, futex sleep/wake syscalls, context switches. Per-request cost goes up, so total throughput goes down (c16 → 1.65M, c32 → 1.13M). The evidence is in the p50 column: 0.000511 ms (the histogram floor) at every concurrency level — the request never leaves the process, so there is no queueing to exploit.
+
+The one-sentence answer
+
+Throughput scales linearly with concurrency only when per-request time is dominated by a parallelizable, waiting-bound resource (network + servers: in-flight requests = concurrency,  throughput ≈ c/RTT ). When per-request time is dominated by a serialized, CPU-bound resource (one global cache mutex), concurrency buys you nothing and eventually hurts. Same code, same loop, same lock — the dataset size only decides which resource dominates, via the hit rate: fits-in-cache (s) → lock-bound; doesn't-fit (l) → queueing-bound.
