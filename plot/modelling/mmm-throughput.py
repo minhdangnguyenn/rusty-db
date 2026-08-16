@@ -17,7 +17,7 @@ from plot.config import (
     GREEN,
     RED,
     M,
-    data_dir_for,
+    # data_dir_for,
     grid_style,
     legend_pos,
     load_csv,
@@ -41,6 +41,9 @@ LINE_STYLE = {
 # ---------------------------------------------------------------------------
 # M/M/m model helpers
 # ---------------------------------------------------------------------------
+
+def data_dir_for(label: str, size: str, dist: str):
+    return f"csv/p2/exp3/{label}/{size}/{dist}"
 
 
 def response_time_mmm(m, lam, mu):
