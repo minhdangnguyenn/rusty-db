@@ -60,6 +60,7 @@ My earlier "throughput" figures for the cache cases were actually the  txns  col
 
 Small dataset, cache (rows=1000, uniform) — hit rate ≈ 99.998%:
 
+```text
 ┌─────┬──────────────┐
 │ c   │ throughput   │
 ├─────┼──────────────┤
@@ -69,9 +70,11 @@ Small dataset, cache (rows=1000, uniform) — hit rate ≈ 99.998%:
 │ c32 │ 1,127,480 /s │
 │ c64 │ 1,438,652 /s │
 └─────┴──────────────┘
+```
 
 Large dataset, cache (rows=10000, uniform) — hit rate ≈ 49–50%:
 
+```text
 ┌─────┬────────────┐
 │ c   │ throughput │
 ├─────┼────────────┤
@@ -81,6 +84,7 @@ Large dataset, cache (rows=10000, uniform) — hit rate ≈ 49–50%:
 │ c32 │ 16,019 /s  │
 │ c64 │ 22,076 /s  │
 └─────┴────────────┘
+```
 
 The large case is ~linear in the middle (2.9K → 5.2K → 10.9K is doubling per doubling of concurrency) and starts to flatten at c32→c64 (1.4×). The small case is non-monotonic: peak at c4/c8, then it falls.
 
