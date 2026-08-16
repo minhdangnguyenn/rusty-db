@@ -29,7 +29,7 @@ def compute_latency_ci_from_dir(data_dir):
     means, cis = {}, {}
     for key in metrics:
         vals = [row[key] for row in last_rows]
-        m, lo, hi = mean_ci(vals)
+        m, lo, hi = mean_ci(vals) # type: ignore
         means[key] = m
         cis[key] = hi - m
     return means, cis
