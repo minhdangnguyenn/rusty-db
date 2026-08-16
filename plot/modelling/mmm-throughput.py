@@ -2,18 +2,22 @@ import glob
 import math
 import os
 import sys
-from pathlib import Path
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter, MultipleLocator
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+from matplotlib.ticker import (  # pyright: ignore[reportMissingImports]
+    FuncFormatter,
+    MultipleLocator,
+)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from plot.config import (
+    CC_LEVELS,
     FIGSIZE,
     GREEN,
     RED,
+    M,
+    data_dir_for,
     grid_style,
     legend_pos,
     load_csv,
@@ -22,14 +26,8 @@ from plot.config import (
 
 FACT = [math.factorial(n) for n in range(65)]
 
-# ---------------------------------------------------------------------------
-# Paths / configuration
-# ---------------------------------------------------------------------------
-
-CACHED_ROOT = "csv/p2/exp3"
-NOCACHE_ROOT = "csv/p2/exp3-no-cache"
-
-OUT_DIR = "charts/p2/modelling"
+NOCACHE_DIR = "csv/p2/exp3-no-cache"
+OUT_DIR = "charts/p2/modelling/"
 
 LEVELS = ["c4", "c8", "c16", "c32", "c64"]
 K_VALUES = [4, 8, 16, 32, 64]
@@ -41,45 +39,33 @@ LINE_STYLE = {
 
 
 # ---------------------------------------------------------------------------
-# Path helpers
+# M/M/m model helpers
 # ---------------------------------------------------------------------------
 
 
-def cached_data_dir(label: str, size: str, dist: str) -> str:
-    return f"{CACHED_ROOT}/{label}/{size}/{dist}"
-
-
-def no_cache_data_dir(label: str, size: str, dist: str) -> str:
-    return f"{NOCACHE_ROOT}/{label}/{size}/{dist}"
-
-
-def c1_no_cache_data_dir(size: str, dist: str) -> str:
-    return f"{NOCACHE_ROOT}/c1/{size}/{dist}"
-
-
-# ---------------------------------------------------------------------------
-# M/M/m model
-# ---------------------------------------------------------------------------
-
-
-def response_time_mmm(m: int, lam: float, mu: float) -> float:
-    """Mean response time for the current closed M/M/m formulation."""
+def response_time_mmm(m, lam, mu):
     p = min(lam / (m * mu), 0.9999)
     mp = m * p
 
     p0 = 1.0 / (
-        1.0 + sum(mp**n / FACT[n] for n in range(1, m)) + mp**m / (FACT[m] * (1.0 - p))
+        1
+        + sum(mp**n / FACT[n] for n in range(1, m))
+        + mp**m / (FACT[m] * (1 - p))
     )
 
-    q = mp**m / (FACT[m] * (1.0 - p)) * p0
+    q = (
+        mp**m
+        / (FACT[m] * (1 - p))
+        * p0
+    )
 
-    return (1.0 / mu) * (1.0 + q / (m * (1.0 - p)))
+    return (1.0 / mu) * (
+        1.0 + q / (m * (1 - p))
+    )
 
 
-def closed_throughput(m: int, mu: float) -> float:
-    """Solve the current fixed-point throughput equation."""
-    lo = 0.0
-    hi = m * mu * 0.99999
+def closed_throughput(m, mu):
+    lo, hi = 0.0, m * mu * 0.99999
 
     for _ in range(200):
         mid = (lo + hi) / 2.0
@@ -94,18 +80,12 @@ def closed_throughput(m: int, mu: float) -> float:
 
 
 # ---------------------------------------------------------------------------
-# CSV helpers
+# Data loading helpers
 # ---------------------------------------------------------------------------
 
 
-def load_runs(data_dir: str):
-    """
-    Load non-empty raw CSV runs.
-
-    Summary files and avg.csv files are ignored.
-    Empty CSVs are skipped and reported.
-    """
-    candidates = sorted(
+def load_runs(data_dir):
+    csvs = sorted(
         glob.glob(
             os.path.join(
                 data_dir,
@@ -115,32 +95,62 @@ def load_runs(data_dir: str):
         )
     )
 
-    candidates = [
-        path for path in candidates if "summary" not in path and "avg" not in path
+    csvs = [
+        f
+        for f in csvs
+        if "summary" not in f and "avg" not in f
     ]
 
-    valid_files = []
     runs = []
 
-    for path in candidates:
+    for path in csvs:
         run = load_csv(path)
 
         if not run:
             print(
-                f"WARNING: empty CSV skipped: {path}",
+                f"Warning: empty CSV skipped: {path}",
                 file=sys.stderr,
             )
             continue
 
-        valid_files.append(path)
         runs.append(run)
 
-    return valid_files, runs
+    return runs
 
 
-def run_throughputs(runs) -> list[float]:
-    """Compute final throughput of every valid run."""
-    return [float(run[-1]["txns"]) / float(run[-1]["time_s"]) for run in runs if run]
+def run_throughputs(runs):
+    return [
+        float(run[-1]["txns"])
+        / float(run[-1]["time_s"])
+        for run in runs
+        if run
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Service rate estimation
+# ---------------------------------------------------------------------------
+
+
+def estimate_mu(size, dist):
+    data_dir = f"{NOCACHE_DIR}/c1/{size}/{dist}"
+
+    runs = load_runs(data_dir)
+
+    if not runs:
+        return None
+
+    throughputs = run_throughputs(runs)
+
+    if not throughputs:
+        return None
+
+    mean_service_time = (
+        sum(1.0 / t for t in throughputs)
+        / len(throughputs)
+    )
+
+    return 1.0 / mean_service_time
 
 
 # ---------------------------------------------------------------------------
@@ -148,44 +158,35 @@ def run_throughputs(runs) -> list[float]:
 # ---------------------------------------------------------------------------
 
 
-def load_measured(size: str, dist: str):
+def load_measured(size, dist):
     results = {}
 
-    print()
-    print("=" * 80)
-    print(f"CACHED MEASUREMENTS: size={size}, dist={dist}")
-    print("=" * 80)
-
     for label in LEVELS:
-        data_dir = cached_data_dir(
+        data_dir = data_dir_for(
             label,
             size,
             dist,
         )
 
-        print()
-        print(f"[Measured] {label} -> {data_dir}")
+        runs = load_runs(data_dir)
 
-        csvs, runs = load_runs(data_dir)
-
-        print(f"  Valid CSV files: {len(csvs)}")
-
-        if not csvs:
-            print("  WARNING: no valid CSV files")
+        if not runs:
+            print(
+                f"Warning: no measured data: {data_dir}",
+                file=sys.stderr,
+            )
             continue
 
         throughputs = run_throughputs(runs)
 
-        print("  Run throughputs: " + ", ".join(f"{x:.2f}" for x in throughputs))
+        if not throughputs:
+            continue
 
-        mean, ci_lo, ci_hi = mean_ci(throughputs)
-
-        print(f"  Mean:  {mean:.2f}")
-        print(f"  CI lo: {ci_lo:.2f}")
-        print(f"  CI hi: {ci_hi:.2f}")
+        mean, ci_lo, ci_hi = mean_ci(
+            throughputs
+        )
 
         results[label] = {
-            "throughputs": throughputs,
             "mean": mean,
             "ci_lo": ci_lo,
             "ci_hi": ci_hi,
@@ -199,44 +200,36 @@ def load_measured(size: str, dist: str):
 # ---------------------------------------------------------------------------
 
 
-def load_no_cache(size: str, dist: str):
+def load_no_cache(size, dist):
     results = {}
 
-    print()
-    print("=" * 80)
-    print(f"NO-CACHE MEASUREMENTS: size={size}, dist={dist}")
-    print("=" * 80)
-
     for label in LEVELS:
-        data_dir = no_cache_data_dir(
-            label,
-            size,
-            dist,
+        data_dir = (
+            f"{NOCACHE_DIR}/"
+            f"{label}/"
+            f"{size}/"
+            f"{dist}"
         )
 
-        print()
-        print(f"[No-cache] {label} -> {data_dir}")
+        runs = load_runs(data_dir)
 
-        csvs, runs = load_runs(data_dir)
-
-        print(f"  Valid CSV files: {len(csvs)}")
-
-        if not csvs:
-            print("  WARNING: no valid CSV files")
+        if not runs:
+            print(
+                f"Warning: no no-cache data: {data_dir}",
+                file=sys.stderr,
+            )
             continue
 
         throughputs = run_throughputs(runs)
 
-        print("  Run throughputs: " + ", ".join(f"{x:.2f}" for x in throughputs))
+        if not throughputs:
+            continue
 
-        mean, ci_lo, ci_hi = mean_ci(throughputs)
-
-        print(f"  Mean:  {mean:.2f}")
-        print(f"  CI lo: {ci_lo:.2f}")
-        print(f"  CI hi: {ci_hi:.2f}")
+        mean, ci_lo, ci_hi = mean_ci(
+            throughputs
+        )
 
         results[label] = {
-            "throughputs": throughputs,
             "mean": mean,
             "ci_lo": ci_lo,
             "ci_hi": ci_hi,
@@ -246,60 +239,7 @@ def load_no_cache(size: str, dist: str):
 
 
 # ---------------------------------------------------------------------------
-# K=1 -> service rate
-# ---------------------------------------------------------------------------
-
-
-def estimate_mu(size: str, dist: str):
-    data_dir = c1_no_cache_data_dir(
-        size,
-        dist,
-    )
-
-    print()
-    print("=" * 80)
-    print("SERVICE RATE ESTIMATION")
-    print("=" * 80)
-    print(f"K=1 path: {data_dir}")
-
-    csvs, runs = load_runs(data_dir)
-
-    print(f"Valid K=1 CSV files: {len(csvs)}")
-
-    if not csvs:
-        print("ERROR: no valid K=1 CSV files found")
-        return None
-
-    throughputs = run_throughputs(runs)
-
-    print("K=1 run throughputs: " + ", ".join(f"{x:.6f}" for x in throughputs))
-
-    arithmetic_mean = sum(throughputs) / len(throughputs)
-
-    harmonic_mean = len(throughputs) / sum(1.0 / t for t in throughputs)
-
-    mean_service_time = sum(1.0 / t for t in throughputs) / len(throughputs)
-
-    mu = 1.0 / mean_service_time
-
-    print()
-    print(f"K=1 arithmetic mean throughput : {arithmetic_mean:.6f}")
-    print(f"K=1 harmonic mean throughput   : {harmonic_mean:.6f}")
-    print(f"Mean service time              : {mean_service_time:.12f}")
-    print(f"mu                             : {mu:.6f}")
-
-    k1_mmm = closed_throughput(
-        1,
-        mu,
-    )
-
-    print(f"M/M/m prediction at K=1        : {k1_mmm:.6f}")
-
-    return mu
-
-
-# ---------------------------------------------------------------------------
-# Alignment
+# Align all data by concurrency level
 # ---------------------------------------------------------------------------
 
 
@@ -318,22 +258,36 @@ def build_aligned_data(
         K_VALUES,
     ):
         if label not in measured:
-            print(f"ERROR: missing measured data for {label}")
+            print(
+                f"Warning: missing measured data for {label}",
+                file=sys.stderr,
+            )
             continue
 
         if label not in no_cache:
-            print(f"ERROR: missing no-cache data for {label}")
+            print(
+                f"Warning: missing no-cache data for {label}",
+                file=sys.stderr,
+            )
             continue
 
         ks.append(k)
 
-        measured_means.append(measured[label]["mean"])
+        measured_means.append(
+            measured[label]["mean"]
+        )
 
-        measured_ci_lo.append(measured[label]["ci_lo"])
+        measured_ci_lo.append(
+            measured[label]["ci_lo"]
+        )
 
-        measured_ci_hi.append(measured[label]["ci_hi"])
+        measured_ci_hi.append(
+            measured[label]["ci_hi"]
+        )
 
-        no_cache_means.append(no_cache[label]["mean"])
+        no_cache_means.append(
+            no_cache[label]["mean"]
+        )
 
     return (
         ks,
@@ -345,95 +299,18 @@ def build_aligned_data(
 
 
 # ---------------------------------------------------------------------------
-# Debug table
+# Plotting helpers
 # ---------------------------------------------------------------------------
 
 
-def print_comparison(
-    ks,
-    measured,
-    no_cache,
-    predicted,
-):
-    print()
-    print("=" * 80)
-    print("FINAL COMPARISON")
-    print("=" * 80)
-
-    print(f"{'K':>6}{'Measured':>18}{'No-cache':>18}{'M/M/m':>18}")
-
-    print("-" * 80)
-
-    for k, m, n, p in zip(
-        ks,
-        measured,
-        no_cache,
-        predicted,
-    ):
-        print(f"{k:>6}{m:>18.2f}{n:>18.2f}{p:>18.2f}")
-
-    print("-" * 80)
-
-    print()
-    print("Pairwise differences:")
-    print()
-
-    for k, m, n, p in zip(
-        ks,
-        measured,
-        no_cache,
-        predicted,
-    ):
-        print(
-            f"K={k}: "
-            f"No-cache - Measured = {n - m:.2f}, "
-            f"M/M/m - No-cache = {p - n:.2f}, "
-            f"M/M/m - Measured = {p - m:.2f}"
-        )
-
-
-def print_response_time_check(
-    ks,
-    measured,
-    no_cache,
-    predicted,
-):
-    print()
-    print("=" * 80)
-    print("RESPONSE TIME SANITY CHECK")
-    print("=" * 80)
-
-    print(f"{'K':>6}{'Measured R(ms)':>20}{'No-cache R(ms)':>20}{'M/M/m R(ms)':>20}")
-
-    print("-" * 80)
-
-    for k, m, n, p in zip(
-        ks,
-        measured,
-        no_cache,
-        predicted,
-    ):
-        measured_r = k / m * 1000.0
-        no_cache_r = k / n * 1000.0
-        predicted_r = k / p * 1000.0
-
-        print(f"{k:>6}{measured_r:>20.4f}{no_cache_r:>20.4f}{predicted_r:>20.4f}")
-
-
-# ---------------------------------------------------------------------------
-# Plotting
-# ---------------------------------------------------------------------------
-
-
-def nice_step(
-    max_val: float,
-    target_bins: int = 10,
-):
+def nice_step(max_val, target_bins=10):
     if max_val <= 0:
         return 1.0
 
     step = max_val / target_bins
-    exp = 10 ** math.floor(math.log10(step))
+    exp = 10 ** math.floor(
+        math.log10(step)
+    )
 
     return round(step / exp) * exp
 
@@ -458,8 +335,14 @@ def add_measured(
         ks,
         means,
         yerr=[
-            [means[i] - ci_lo[i] for i in range(len(ks))],
-            [ci_hi[i] - means[i] for i in range(len(ks))],
+            [
+                means[i] - ci_lo[i]
+                for i in range(len(ks))
+            ],
+            [
+                ci_hi[i] - means[i]
+                for i in range(len(ks))
+            ],
         ],
         fmt="none",
         color=RED,
@@ -486,11 +369,11 @@ def add_no_cache(
 def add_predicted(
     ax,
     ks,
-    predicted,
+    mmm_pred,
 ):
     ax.plot(
         ks,
-        predicted,
+        mmm_pred,
         color=GREEN,
         marker="s",
         label="M/M/m",
@@ -498,23 +381,107 @@ def add_predicted(
     )
 
 
-def plot_result(
+def add_break_marks(ax_top, ax_bot):
+    d = 0.015
+    kw = {
+        "color": "k",
+        "clip_on": False,
+    }
+
+    ax_bot.plot(
+        (-d, +d),
+        (1 - d, 1 + d),
+        transform=ax_bot.transAxes,
+        **kw,
+    )
+
+    ax_bot.plot(
+        (-d, +d),
+        (1 + d, 1 - d),
+        transform=ax_bot.transAxes,
+        **kw,
+    )
+
+    ax_top.plot(
+        (-d, +d),
+        (-d, +d),
+        transform=ax_top.transAxes,
+        **kw,
+    )
+
+    ax_top.plot(
+        (-d, +d),
+        (-d - d, -d + d),
+        transform=ax_top.transAxes,
+        **kw,
+    )
+
+
+def find_break(all_vals):
+    best_ratio = 0
+    gap_idx = 0
+
+    for i in range(1, len(all_vals)):
+        if all_vals[i - 1] > 0:
+            ratio = (
+                all_vals[i]
+                / all_vals[i - 1]
+            )
+
+            if ratio > best_ratio:
+                best_ratio = ratio
+                gap_idx = i
+
+    return (
+        all_vals[gap_idx - 1] * 1.15,
+        all_vals[gap_idx] * 0.85,
+    )
+
+
+def format_axes(
+    ax,
     ks,
-    measured,
+    valid_vals,
+    title="M/M/m throughput",
+):
+    ax.set_title(title)
+    ax.set_xlabel(
+        "Concurrency level (K = m)"
+    )
+    ax.set_xticks(ks)
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+
+    ax.yaxis.set_major_locator(
+        MultipleLocator(
+            nice_step(max(valid_vals))
+        )
+    )
+
+    ax.yaxis.set_major_formatter(
+        FuncFormatter(
+            lambda x, _: f"{x:,.0f}"
+        )
+    )
+
+    ax.legend(**legend_pos)
+    ax.grid(True, **grid_style)
+
+
+# ---------------------------------------------------------------------------
+# Single plot
+# ---------------------------------------------------------------------------
+
+
+def plot_single(
+    ks,
+    means,
     ci_lo,
     ci_hi,
-    no_cache,
-    predicted,
+    mmm_pred,
+    no_cache_means,
+    valid_vals,
 ):
-    all_values = measured + no_cache + predicted + ci_lo + ci_hi
-
-    positive_values = [x for x in all_values if math.isfinite(x) and x > 0]
-
-    if not positive_values:
-        return None
-
-    y_max = max(positive_values)
-
     fig, ax = plt.subplots(
         figsize=(
             FIGSIZE[0] * 1.4,
@@ -525,7 +492,7 @@ def plot_result(
     add_measured(
         ax,
         ks,
-        measured,
+        means,
         ci_lo,
         ci_hi,
     )
@@ -533,40 +500,212 @@ def plot_result(
     add_no_cache(
         ax,
         ks,
-        no_cache,
+        no_cache_means,
     )
 
     add_predicted(
         ax,
         ks,
-        predicted,
+        mmm_pred,
     )
 
-    ax.set_title("M/M/m throughput comparison")
-
-    ax.set_xlabel("Concurrency level (K = m)")
-
-    ax.set_ylabel("Throughput [txns/s]")
-
-    ax.set_xticks(ks)
-    ax.set_xlim(
-        0,
-        max(ks) + 4,
+    format_axes(
+        ax,
+        ks,
+        valid_vals,
     )
 
-    ax.set_ylim(
-        0,
-        y_max * 1.15,
+    ax.set_ylabel(
+        "Throughput [txns/s]"
     )
-
-    ax.yaxis.set_major_locator(MultipleLocator(nice_step(y_max)))
-
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
-
-    ax.legend(**legend_pos)
-    ax.grid(True, **grid_style)
 
     plt.tight_layout()
+
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Broken y-axis plot
+# ---------------------------------------------------------------------------
+
+
+def plot_broken(
+    ks,
+    means,
+    ci_lo,
+    ci_hi,
+    mmm_pred,
+    no_cache_means,
+    break_low,
+    break_high,
+    y_max,
+    finite_vals,
+):
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2,
+        1,
+        sharex=True,
+        gridspec_kw={
+            "height_ratios": [1, 1],
+            "hspace": 0.1,
+        },
+        figsize=(
+            FIGSIZE[0] * 1.4,
+            FIGSIZE[1] * 2,
+        ),
+    )
+
+    # Top
+    add_measured(
+        ax_top,
+        ks,
+        means,
+        ci_lo,
+        ci_hi,
+    )
+
+    add_no_cache(
+        ax_top,
+        ks,
+        no_cache_means,
+    )
+
+    add_predicted(
+        ax_top,
+        ks,
+        mmm_pred,
+    )
+
+    ax_top.set_ylim(
+        break_high,
+        y_max,
+    )
+
+    ax_top.yaxis.set_major_locator(
+        MultipleLocator(
+            nice_step(
+                y_max - break_high
+            )
+        )
+    )
+
+    ax_top.yaxis.set_major_formatter(
+        FuncFormatter(
+            lambda x, _: f"{x:,.0f}"
+        )
+    )
+
+    ax_top.set_title(
+        "M/M/m throughput"
+    )
+
+    ax_top.grid(
+        True,
+        **grid_style,
+    )
+
+    ax_top.spines[
+        "bottom"
+    ].set_visible(False)
+
+    ax_top.tick_params(
+        bottom=False
+    )
+
+    ax_top.legend(
+        **legend_pos
+    )
+
+    # Bottom
+    add_measured(
+        ax_bot,
+        ks,
+        means,
+        ci_lo,
+        ci_hi,
+    )
+
+    add_no_cache(
+        ax_bot,
+        ks,
+        no_cache_means,
+    )
+
+    add_predicted(
+        ax_bot,
+        ks,
+        mmm_pred,
+    )
+
+    ax_bot.set_ylim(
+        0,
+        break_low,
+    )
+
+    valid_bot = [
+        v
+        for v in finite_vals
+        if v <= break_low
+    ]
+
+    if valid_bot:
+        ax_bot.yaxis.set_major_locator(
+            MultipleLocator(
+                nice_step(
+                    max(valid_bot)
+                )
+            )
+        )
+
+    ax_bot.yaxis.set_major_formatter(
+        FuncFormatter(
+            lambda x, _: f"{x:,.0f}"
+        )
+    )
+
+    ax_bot.grid(
+        True,
+        **grid_style,
+    )
+
+    ax_bot.spines[
+        "top"
+    ].set_visible(False)
+
+    ax_bot.tick_params(
+        top=False
+    )
+
+    ax_bot.set_xlabel(
+        "Concurrency level (K = m)"
+    )
+
+    ax_bot.set_xticks(ks)
+
+    ax_bot.legend(
+        **legend_pos
+    )
+
+    add_break_marks(
+        ax_top,
+        ax_bot,
+    )
+
+    fig.subplots_adjust(
+        left=0.12,
+        right=0.85,
+        top=0.93,
+        bottom=0.15,
+    )
+
+    fig.text(
+        0.05,
+        0.5,
+        "Throughput [txns/s]",
+        va="center",
+        rotation="vertical",
+        fontsize=11,
+    )
 
     return fig
 
@@ -577,31 +716,12 @@ def plot_result(
 
 
 def main():
-    # Start with one case while debugging.
-    # Uncomment the remaining cases once the data is verified.
-    EXP_CASES = [
+    for size, dist in [
         ("l", "uniform"),
         ("l", "zipf"),
         ("s", "uniform"),
-        # ("s", "zipf"),
-    ]
-
-    print()
-    print("=" * 80)
-    print("M/M/m DEBUG RUN")
-    print("=" * 80)
-    print(f"Cached root    : {CACHED_ROOT}")
-    print(f"No-cache root  : {NOCACHE_ROOT}")
-    print(f"Levels         : {LEVELS}")
-    print(f"K values       : {K_VALUES}")
-
-    for size, dist in EXP_CASES:
-        print()
-        print()
-        print("#" * 80)
-        print(f"# CASE: size={size}, dist={dist}")
-        print("#" * 80)
-
+        ("s", "zipf"),
+    ]:
         measured = load_measured(
             size,
             dist,
@@ -612,20 +732,30 @@ def main():
             dist,
         )
 
+        if not measured:
+            continue
+
+        if not no_cache:
+            continue
+
         mu = estimate_mu(
             size,
             dist,
         )
 
         if mu is None:
-            print("Skipping case because mu could not be estimated.")
+            print(
+                f"Error: no c1 data for "
+                f"{size}/{dist}, skipping",
+                file=sys.stderr,
+            )
             continue
 
         (
             ks,
-            measured_means,
-            measured_ci_lo,
-            measured_ci_hi,
+            means,
+            ci_lo,
+            ci_hi,
             no_cache_means,
         ) = build_aligned_data(
             measured,
@@ -633,10 +763,9 @@ def main():
         )
 
         if not ks:
-            print("No aligned data available.")
             continue
 
-        predicted = [
+        mmm_pred = [
             closed_throughput(
                 k,
                 mu,
@@ -644,38 +773,105 @@ def main():
             for k in ks
         ]
 
-        print_comparison(
-            ks,
-            measured_means,
-            no_cache_means,
-            predicted,
+        # Include all three curves and CI bounds
+        # when determining the y-axis range.
+        all_vals = sorted(
+            set(
+                means
+                + no_cache_means
+                + mmm_pred
+                + ci_lo
+                + ci_hi
+            )
         )
 
-        print_response_time_check(
-            ks,
-            measured_means,
-            no_cache_means,
-            predicted,
+        finite_meas = [
+            v
+            for v in means
+            if math.isfinite(v)
+        ]
+
+        finite_no_cache = [
+            v
+            for v in no_cache_means
+            if math.isfinite(v)
+        ]
+
+        finite_mmm = [
+            v
+            for v in mmm_pred
+            if math.isfinite(v)
+        ]
+
+        max_meas = (
+            max(finite_meas)
+            if finite_meas
+            else 0
         )
 
-        fig = plot_result(
-            ks,
-            measured_means,
-            measured_ci_lo,
-            measured_ci_hi,
-            no_cache_means,
-            predicted,
+        max_no_cache = (
+            max(finite_no_cache)
+            if finite_no_cache
+            else 0
         )
 
-        if fig is None:
-            continue
+        max_mmm = (
+            max(finite_mmm)
+            if finite_mmm
+            else 0
+        )
+
+        max_upper = max(
+            max_meas,
+            max_no_cache,
+            max_mmm,
+        )
+
+        # Broken axis only if measured/no-cache values are
+        # much larger than the M/M/m prediction.
+        if (
+            max_mmm > 0
+            and max_upper > 5 * max_mmm
+        ):
+            break_low, break_high = find_break(
+                all_vals
+            )
+
+            fig = plot_broken(
+                ks,
+                means,
+                ci_lo,
+                ci_hi,
+                mmm_pred,
+                no_cache_means,
+                break_low,
+                break_high,
+                max_upper * 1.1,
+                finite_meas
+                + finite_no_cache
+                + finite_mmm,
+            )
+        else:
+            fig = plot_single(
+                ks,
+                means,
+                ci_lo,
+                ci_hi,
+                mmm_pred,
+                no_cache_means,
+                all_vals,
+            )
 
         os.makedirs(
             OUT_DIR,
             exist_ok=True,
         )
 
-        out_path = f"{OUT_DIR}/mmm-throughput-debug-{size}-{dist}.png"
+        out_path = (
+            f"{OUT_DIR}"
+            f"mmm-throughput-"
+            f"{size}-{dist}.png"
+        )
 
         plt.savefig(
             out_path,
@@ -683,8 +879,9 @@ def main():
             bbox_inches="tight",
         )
 
-        print()
-        print(f"Saved debug plot to: {out_path}")
+        print(
+            f"Saved to {out_path}"
+        )
 
         plt.close(fig)
 
