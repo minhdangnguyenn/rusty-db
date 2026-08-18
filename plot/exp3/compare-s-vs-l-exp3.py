@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 )
                 csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
                 runs = [load_csv(f) for f in csvs]
-                tps = [r[-1]["throughput"] for r in runs]
+                tps = [float(r[-1]["throughput"]) for r in runs]
                 mean, lo, hi = mean_ci(tps)
                 means.append(mean)
                 lowers.append(lo)
