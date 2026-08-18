@@ -67,7 +67,7 @@ def estimate_mu(size, dist):
     if not csvs:
         return None
     runs = [load_csv(f) for f in csvs]
-    throughputs = [r[-1]["txns"] / r[-1]["time_s"] for r in runs]
+    throughputs = [float(r[-1]["txns"]) / float(r[-1]["time_s"]) for r in runs]
     mean_service_time = sum(1 / t for t in throughputs) / len(throughputs)
     return 1.0 / mean_service_time
 
@@ -87,7 +87,7 @@ def load_measured(size, dist):
         if not csvs:
             continue
         runs = [load_csv(f) for f in csvs]
-        throughputs = [r[-1]["txns"] / r[-1]["time_s"] for r in runs]
+        throughputs = [float(r[-1]["txns"]) / float(r[-1]["time_s"]) for r in runs]
         m, lo, hi = mean_ci(throughputs)
         means.append(m)
         ci_lo.append(lo)

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from plot.config import (
     BLUE,
-    CC_LEVELS,  # pyright: ignore[reportUnusedImport, reportAttributeAccessIssue]
+    CC_LEVELS,
     FIGSIZE,
     RED,
     M,

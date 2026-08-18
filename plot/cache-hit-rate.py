@@ -26,7 +26,7 @@ def main():
     data = load_csv(args.csv)
     t = [r["time_s"] for r in data]
     hit_rate = [r["cache_hit_rate"] * 100 for r in data]
-    miss_rate = [100 - r["cache_hit_rate"] * 100 for r in data]
+    miss_rate = [100 - float(r["cache_hit_rate"]) * 100 for r in data]
 
     single = len(t) == 1
     if single:
