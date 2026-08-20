@@ -15,8 +15,8 @@ from plot.config import (
     CC_LEVELS,
     FIGSIZE,
     GREEN,
-    M,
     RED,
+    M,
     data_dir_for,
     grid_style,
     legend_pos,
@@ -217,12 +217,10 @@ def response_times(means, ci_lo, ci_hi, mu):
 def response_times_mmm_ci(ks, mu_lo, mu_hi):
     """Compute M/M/m response time CI bounds (ms)."""
     rt_ci_lo = [
-        ks[i] / closed_throughput(ks[i], mu_hi) * 1000.0
-        for i in range(len(ks))
+        ks[i] / closed_throughput(ks[i], mu_hi) * 1000.0 for i in range(len(ks))
     ]
     rt_ci_hi = [
-        ks[i] / closed_throughput(ks[i], mu_lo) * 1000.0
-        for i in range(len(ks))
+        ks[i] / closed_throughput(ks[i], mu_lo) * 1000.0 for i in range(len(ks))
     ]
     return rt_ci_lo, rt_ci_hi
 
