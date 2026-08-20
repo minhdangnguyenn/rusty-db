@@ -1,2 +1,0 @@
-experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
-"exp3-nocache-c4-l-zipf",2,"read (rows=10000 size=64 batch=1 block=100 dist=zipf skew=1)","10.0.0.2:9601;10.0.0.3:9602;10.0.0.5:9603;10.0.0.6:9604;10.0.0.4:9605",4,100000,16791084677885396490,30.018,49537,1650.220,2.527231,3.266559,4.231167,57.638911,0,0,0.000000,30.0

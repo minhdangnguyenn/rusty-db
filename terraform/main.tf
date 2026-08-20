@@ -43,7 +43,7 @@ resource "google_compute_firewall" "ssh" {
   }
 
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["${var.prefix}-node"]
+  target_tags   = ["${var.prefix}-node", "${var.prefix}-client"]
 }
 
 # Firewall: toyDB SQL clients (from anywhere)
@@ -84,7 +84,12 @@ resource "google_compute_address" "internal" {
 }
 
 locals {
-  startup_script = file("${path.module}/startup_script.sh")
+  startup_script        = file("${path.module}/startup_script.sh")
+  client_startup_script = file("${path.module}/client_startup_script.sh")
+  sql_hosts = join(",", [
+    for i in range(local.node_count) :
+    "${google_compute_address.internal[i].address}:${local.sql_base + i + 1}"
+  ])
 }
 
 # 5 VM instances
@@ -128,4 +133,37 @@ resource "google_compute_instance" "db_nodes" {
     google_compute_firewall.sql,
     google_compute_firewall.raft,
   ]
+}
+
+# Dedicated benchmark client VM. Runs only the workload binary, never toydb,
+# so client CPU/IO never competes with the database nodes.
+resource "google_compute_instance" "client" {
+  name         = "${var.prefix}-client"
+  machine_type = var.client_machine_type
+  zone         = var.zone
+
+  tags = ["${var.prefix}-client"]
+
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      size  = var.client_disk_size_gb
+    }
+  }
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.main.self_link
+    access_config {}
+  }
+
+  service_account {
+    scopes = ["cloud-platform"]
+  }
+
+  metadata = {
+    startup-script = local.client_startup_script
+    sql_hosts      = local.sql_hosts
+  }
+
+  depends_on = [google_compute_firewall.ssh]
 }

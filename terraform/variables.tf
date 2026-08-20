@@ -34,6 +34,18 @@ variable "disk_size_gb" {
   default     = 20
 }
 
+variable "client_machine_type" {
+  description = "GCE machine type for the benchmark client VM"
+  type        = string
+  default     = "e2-medium"
+}
+
+variable "client_disk_size_gb" {
+  description = "Boot disk size for the benchmark client VM (GB)"
+  type        = number
+  default     = 20
+}
+
 variable "client_cidrs" {
   description = "CIDR ranges allowed to connect to toyDB SQL ports"
   type        = list(string)

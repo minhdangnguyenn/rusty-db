@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fetches all phase2 benchmark CSVs from the GCP cluster (node-1) into the
+# Fetches all phase2 benchmark CSVs from the benchmark client VM into the
 # local csv/p2 directory, organized by experiment structure. Files are left
 # untouched on the VM.
 #
 # Usage:
-#   bash scripts/phase2/fetch-csv.sh
+#   bash scripts/p2/fetch-csv.sh
 #
 # Environment:
 #   ZONE    GCP zone (default europe-west3-c)
 #   PREFIX  VM name prefix (default toydb)
+#   NODE    VM to fetch CSVs from (default <PREFIX>-client)
 
 ZONE="${ZONE:-europe-west3-c}"
 PREFIX="${PREFIX:-toydb}"
-NODE="$PREFIX-node-1"
+NODE="${NODE:-$PREFIX-client}"
 
 # Tar every top-level benchmark CSV (/opt/toydb/csv/exp*-*.csv) on the VM.
 gcloud compute ssh "$NODE" --zone "$ZONE" --command \
