@@ -1,2 +1,2 @@
 experiment,run_id,workload,hosts,concurrency,count,seed,total_time_s,txns,throughput,p50_ms,p90_ms,p99_ms,max,cache_hits,cache_misses,cache_hit_rate,duration
-"exp3-nocache-c16-s-uniform",2,"read (rows=1000 size=64 batch=1 block=100 dist=uniform)","10.0.0.2:9601;10.0.0.3:9602;10.0.0.5:9603;10.0.0.6:9604;10.0.0.4:9605",16,100000,16791084677885396490,30.036,130185,4334.351,3.633151,5.005311,7.139327,118.882303,0,0,0.000000,30.0
+"exp1-no-cache-s-uniform",2,"read (rows=1000 size=64 batch=1 block=100 dist=uniform)","10.0.0.2:9601;10.0.0.3:9602;10.0.0.5:9603;10.0.0.6:9604;10.0.0.4:9605",16,100000,16791084677885396490,30.031,120259,4004.538,3.960831,5.361663,8.056831,1201.668095,0,0,0.000000,30.0
