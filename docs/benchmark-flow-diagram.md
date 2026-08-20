@@ -71,7 +71,7 @@ There are **two deployment modes**, depending on which experiment phase you are 
   │  │  │      10.0.0.7:9603,    │  │  SQL queries over INTERNAL         │
   │  │  │      10.0.0.11:9604,   │──┼────── network (sub-ms RTT) ──┐     │
   │  │  │      10.0.0.8:9605     │  │                              │     │
-  │  │  │  -c 4 read --rows 1000 │  │                              │     │
+  │  │  │  -c K read --rows SIZE │  │                              │     │
   │  │  │  --cache --dist zipf   │  │                              │     │
   │  │  └────────────────────────┘  │                              │     │
   │  └──────────────────────────────┘                              │     │
