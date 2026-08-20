@@ -11,11 +11,12 @@ from matplotlib.ticker import (  # pyright: ignore[reportMissingImports]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from plot.config import (
+    BLUE,
     CC_LEVELS,
     FIGSIZE,
     GREEN,
-    RED,
     M,
+    RED,
     data_dir_for,
     grid_style,
     legend_pos,
@@ -59,6 +60,7 @@ def closed_throughput(m, mu):
 
 
 def estimate_mu(size, dist):
+    """Estimate mu and its 95% CI from K=1 no-cache runs."""
     data_dir = f"{NOCACHE_DIR}/{dist}/c1/{size}"
     csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
     csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
@@ -66,8 +68,25 @@ def estimate_mu(size, dist):
         return None
     runs = [load_csv(f) for f in csvs]
     throughputs = [float(r[-1]["txns"]) / float(r[-1]["time_s"]) for r in runs]
-    mean_service_time = sum(1 / t for t in throughputs) / len(throughputs)
-    return 1.0 / mean_service_time
+
+    service_times = [1.0 / t for t in throughputs]
+    mean_st = sum(service_times) / len(service_times)
+    mu = 1.0 / mean_st
+
+    if len(service_times) >= 2:
+        var_st = sum((s - mean_st) ** 2 for s in service_times) / (
+            len(service_times) - 1
+        )
+        std_st = math.sqrt(var_st)
+        n = len(service_times)
+        t_crit = 2.776 if n == 5 else (3.182 if n == 4 else 1.96)
+        half_st = t_crit * std_st / math.sqrt(n)
+        mu_lo = 1.0 / (mean_st + half_st)
+        mu_hi = 1.0 / (mean_st - half_st)
+    else:
+        mu_lo = mu_hi = mu
+
+    return mu, mu_lo, mu_hi
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +98,24 @@ def load_measured(size, dist):
     means, ci_lo, ci_hi = [], [], []
     for label in CC_LEVELS:
         data_dir = data_dir_for(label, size, dist)
+        csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
+        csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
+        if not csvs:
+            continue
+        runs = [load_csv(f) for f in csvs]
+        throughputs = [float(r[-1]["txns"]) / float(r[-1]["time_s"]) for r in runs]
+        m, lo, hi = mean_ci(throughputs)
+        means.append(m)
+        ci_lo.append(lo)
+        ci_hi.append(hi)
+    return means, ci_lo, ci_hi
+
+
+def load_no_cache(size, dist):
+    """Load no-cache throughput with 95% CI for c4..c64."""
+    means, ci_lo, ci_hi = [], [], []
+    for label in CC_LEVELS:
+        data_dir = f"{NOCACHE_DIR}/{dist}/{label}/{size}"
         csvs = sorted(glob.glob(os.path.join(data_dir, "**/*.csv"), recursive=True))
         csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
         if not csvs:
@@ -106,7 +143,7 @@ def nice_step(max_val, target_bins=10):
 
 
 def add_measured(ax, ks, means, ci_lo, ci_hi):
-    ax.plot(ks, means, color=RED, marker="o", label="Measured", **LINE_STYLE)
+    ax.plot(ks, means, color=BLUE, marker="o", label="Measured", **LINE_STYLE)
     ax.errorbar(
         ks,
         means,
@@ -115,14 +152,44 @@ def add_measured(ax, ks, means, ci_lo, ci_hi):
             [ci_hi[i] - means[i] for i in range(len(ks))],
         ],
         fmt="none",
-        color=RED,
+        color=BLUE,
         capsize=4,
         capthick=1.5,
     )
 
 
-def add_predicted(ax, ks, mmm_pred):
-    ax.plot(ks, mmm_pred, color=GREEN, marker="s", label="Predicted", **LINE_STYLE)
+def add_no_cache(ax, ks, means, ci_lo=None, ci_hi=None):
+    ax.plot(ks, means, color=RED, marker="^", label="No cache", **LINE_STYLE)
+    if ci_lo is not None and ci_hi is not None:
+        ax.errorbar(
+            ks,
+            means,
+            yerr=[
+                [means[i] - ci_lo[i] for i in range(len(ks))],
+                [ci_hi[i] - means[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=RED,
+            capsize=4,
+            capthick=1.5,
+        )
+
+
+def add_predicted(ax, ks, mmm_pred, mmm_ci_lo=None, mmm_ci_hi=None):
+    ax.plot(ks, mmm_pred, color=GREEN, marker="s", label="M/M/m", **LINE_STYLE)
+    if mmm_ci_lo is not None and mmm_ci_hi is not None:
+        ax.errorbar(
+            ks,
+            mmm_pred,
+            yerr=[
+                [mmm_pred[i] - mmm_ci_lo[i] for i in range(len(ks))],
+                [mmm_ci_hi[i] - mmm_pred[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=GREEN,
+            capsize=4,
+            capthick=1.5,
+        )
 
 
 def add_break_marks(ax_top, ax_bot):
@@ -157,10 +224,14 @@ def format_axes(ax, ks, valid_vals, title="M/M/m throughput"):
     ax.grid(True, **grid_style)
 
 
-def plot_single(ks, means, ci_lo, ci_hi, mmm_pred, valid_vals):
+def plot_single(
+    ks, means, ci_lo, ci_hi, mmm_pred, mmm_ci_lo, mmm_ci_hi,
+    no_cache_means, no_cache_ci_lo, no_cache_ci_hi, valid_vals,
+):
     fig, ax = plt.subplots(figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1]))
     add_measured(ax, ks, means, ci_lo, ci_hi)
-    add_predicted(ax, ks, mmm_pred)
+    add_no_cache(ax, ks, no_cache_means, no_cache_ci_lo, no_cache_ci_hi)
+    add_predicted(ax, ks, mmm_pred, mmm_ci_lo, mmm_ci_hi)
     format_axes(ax, ks, valid_vals)
     ax.set_ylabel("Throughput [txns/s]")
     plt.tight_layout()
@@ -168,18 +239,20 @@ def plot_single(ks, means, ci_lo, ci_hi, mmm_pred, valid_vals):
 
 
 def plot_broken(
-    ks, means, ci_lo, ci_hi, mmm_pred, break_low, break_high, y_max, finite_meas
+    ks, means, ci_lo, ci_hi, mmm_pred, mmm_ci_lo, mmm_ci_hi,
+    no_cache_means, no_cache_ci_lo, no_cache_ci_hi,
+    break_low, break_high, y_max, finite_vals,
 ):
     fig, (ax_top, ax_bot) = plt.subplots(
-        2,
-        1,
-        sharex=True,
+        2, 1, sharex=True,
         gridspec_kw={"height_ratios": [1, 1], "hspace": 0.1},
         figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1] * 2),
     )
 
-    # Top: measured (higher values)
+    # Top
     add_measured(ax_top, ks, means, ci_lo, ci_hi)
+    add_no_cache(ax_top, ks, no_cache_means, no_cache_ci_lo, no_cache_ci_hi)
+    add_predicted(ax_top, ks, mmm_pred, mmm_ci_lo, mmm_ci_hi)
     ax_top.set_ylim(break_high, y_max)
     ax_top.yaxis.set_major_locator(MultipleLocator(nice_step(y_max - break_high)))
     ax_top.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
@@ -189,10 +262,12 @@ def plot_broken(
     ax_top.tick_params(bottom=False)
     ax_top.legend(**legend_pos)
 
-    # Bottom: predicted (lower values)
-    add_predicted(ax_bot, ks, mmm_pred)
+    # Bottom
+    add_measured(ax_bot, ks, means, ci_lo, ci_hi)
+    add_no_cache(ax_bot, ks, no_cache_means, no_cache_ci_lo, no_cache_ci_hi)
+    add_predicted(ax_bot, ks, mmm_pred, mmm_ci_lo, mmm_ci_hi)
     ax_bot.set_ylim(0, break_low)
-    valid_bot = [v for v in finite_meas if v <= break_low]
+    valid_bot = [v for v in finite_vals if v <= break_low]
     if valid_bot:
         ax_bot.yaxis.set_major_locator(MultipleLocator(nice_step(max(valid_bot))))
     ax_bot.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
@@ -227,41 +302,57 @@ def main():
         if not means:
             continue
 
-        mu = estimate_mu(size, dist)
-        if mu is None:
+        no_cache_means, no_cache_ci_lo, no_cache_ci_hi = load_no_cache(size, dist)
+
+        mu_result = estimate_mu(size, dist)
+        if mu_result is None:
             print(f"Error: no c1 data for {size}/{dist}, skipping", file=sys.stderr)
             continue
-        else:
-            print(f"({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
+
+        mu, mu_lo, mu_hi = mu_result
+        print(f"({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
 
         ks = M[: len(means)]
         mmm_pred = [closed_throughput(ks[i], mu) for i in range(len(ks))]
+        mmm_ci_lo = [closed_throughput(ks[i], mu_lo) for i in range(len(ks))]
+        mmm_ci_hi = [closed_throughput(ks[i], mu_hi) for i in range(len(ks))]
 
-        all_vals = sorted(set(means + mmm_pred))
+        all_vals = sorted(
+            set(
+                means + mmm_pred + no_cache_means
+                + ci_lo + ci_hi + mmm_ci_lo + mmm_ci_hi
+                + no_cache_ci_lo + no_cache_ci_hi
+            )
+        )
+
         finite_meas = [v for v in means if math.isfinite(v)]
         finite_mmm = [v for v in mmm_pred if math.isfinite(v)]
+        finite_no_cache = [v for v in no_cache_means if math.isfinite(v)]
         max_meas = max(finite_meas) if finite_meas else 0
         max_mmm = max(finite_mmm) if finite_mmm else 0
+        max_no_cache = max(finite_no_cache) if finite_no_cache else 0
+        max_upper = max(max_meas, max_mmm, max_no_cache)
 
-        if max_mmm > 0 and max_meas > 5 * max_mmm:
+        if max_mmm > 0 and max_upper > 5 * max_mmm:
             break_low, break_high = find_break(all_vals)
             fig = plot_broken(
-                ks,
-                means,
-                ci_lo,
-                ci_hi,
-                mmm_pred,
-                break_low,
-                break_high,
-                max_meas * 1.1,
-                finite_mmm,
+                ks, means, ci_lo, ci_hi,
+                mmm_pred, mmm_ci_lo, mmm_ci_hi,
+                no_cache_means, no_cache_ci_lo, no_cache_ci_hi,
+                break_low, break_high, max_upper * 1.1,
+                finite_meas + finite_mmm + finite_no_cache,
             )
         else:
-            fig = plot_single(ks, means, ci_lo, ci_hi, mmm_pred, all_vals)
+            fig = plot_single(
+                ks, means, ci_lo, ci_hi,
+                mmm_pred, mmm_ci_lo, mmm_ci_hi,
+                no_cache_means, no_cache_ci_lo, no_cache_ci_hi,
+                all_vals,
+            )
 
         os.makedirs(OUT_DIR, exist_ok=True)
         out_path = f"{OUT_DIR}mmm-throughput-{size}-{dist}.png"
-        plt.savefig(out_path, dpi=300)
+        plt.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {out_path}")
         plt.close(fig)
 

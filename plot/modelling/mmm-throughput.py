@@ -13,12 +13,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from plot.config import (
     BLUE,
-    # CC_LEVELS,
     FIGSIZE,
     GREEN,
     RED,
-    # M,
-    # data_dir_for,
     grid_style,
     legend_pos,
     load_csv,
@@ -116,11 +113,15 @@ def run_throughputs(runs):
 
 
 # ---------------------------------------------------------------------------
-# Service rate estimation
+# Service rate estimation (returns mu and its 95% CI)
 # ---------------------------------------------------------------------------
 
 
 def estimate_mu(size, dist):
+    """Estimate mu and its 95% CI from K=1 no-cache runs.
+
+    Returns (mu, mu_ci_lo, mu_ci_hi).
+    """
     data_dir = f"{NOCACHE_DIR}/c1/{size}/{dist}"
 
     runs = load_runs(data_dir)
@@ -133,9 +134,26 @@ def estimate_mu(size, dist):
     if not throughputs:
         return None
 
-    mean_service_time = sum(1.0 / t for t in throughputs) / len(throughputs)
+    service_times = [1.0 / t for t in throughputs]
+    mean_st = sum(service_times) / len(service_times)
 
-    return 1.0 / mean_service_time
+    mu = 1.0 / mean_st
+
+    if len(service_times) >= 2:
+        var_st = sum((s - mean_st) ** 2 for s in service_times) / (
+            len(service_times) - 1
+        )
+        std_st = math.sqrt(var_st)
+        n = len(service_times)
+        t_crit = 2.776 if n == 5 else (3.182 if n == 4 else 1.96)
+        half_st = t_crit * std_st / math.sqrt(n)
+
+        mu_lo = 1.0 / (mean_st + half_st)
+        mu_hi = 1.0 / (mean_st - half_st)
+    else:
+        mu_lo = mu_hi = mu
+
+    return mu, mu_lo, mu_hi
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +246,8 @@ def build_aligned_data(
     measured_ci_lo = []
     measured_ci_hi = []
     no_cache_means = []
+    no_cache_ci_lo = []
+    no_cache_ci_hi = []
 
     for label, k in zip(
         LEVELS,
@@ -256,6 +276,8 @@ def build_aligned_data(
         measured_ci_hi.append(measured[label]["ci_hi"])
 
         no_cache_means.append(no_cache[label]["mean"])
+        no_cache_ci_lo.append(no_cache[label]["ci_lo"])
+        no_cache_ci_hi.append(no_cache[label]["ci_hi"])
 
     return (
         ks,
@@ -263,6 +285,8 @@ def build_aligned_data(
         measured_ci_lo,
         measured_ci_hi,
         no_cache_means,
+        no_cache_ci_lo,
+        no_cache_ci_hi,
     )
 
 
@@ -315,6 +339,8 @@ def add_no_cache(
     ax,
     ks,
     means,
+    ci_lo=None,
+    ci_hi=None,
 ):
     ax.plot(
         ks,
@@ -325,11 +351,27 @@ def add_no_cache(
         **LINE_STYLE,
     )
 
+    if ci_lo is not None and ci_hi is not None:
+        ax.errorbar(
+            ks,
+            means,
+            yerr=[
+                [means[i] - ci_lo[i] for i in range(len(ks))],
+                [ci_hi[i] - means[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=RED,
+            capsize=4,
+            capthick=1.5,
+        )
+
 
 def add_predicted(
     ax,
     ks,
     mmm_pred,
+    mmm_ci_lo=None,
+    mmm_ci_hi=None,
 ):
     ax.plot(
         ks,
@@ -339,6 +381,20 @@ def add_predicted(
         label="M/M/m",
         **LINE_STYLE,
     )
+
+    if mmm_ci_lo is not None and mmm_ci_hi is not None:
+        ax.errorbar(
+            ks,
+            mmm_pred,
+            yerr=[
+                [mmm_pred[i] - mmm_ci_lo[i] for i in range(len(ks))],
+                [mmm_ci_hi[i] - mmm_pred[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=GREEN,
+            capsize=4,
+            capthick=1.5,
+        )
 
 
 def add_break_marks(ax_top, ax_bot):
@@ -426,7 +482,11 @@ def plot_single(
     ci_lo,
     ci_hi,
     mmm_pred,
+    mmm_ci_lo,
+    mmm_ci_hi,
     no_cache_means,
+    no_cache_ci_lo,
+    no_cache_ci_hi,
     valid_vals,
 ):
     fig, ax = plt.subplots(
@@ -448,12 +508,16 @@ def plot_single(
         ax,
         ks,
         no_cache_means,
+        no_cache_ci_lo,
+        no_cache_ci_hi,
     )
 
     add_predicted(
         ax,
         ks,
         mmm_pred,
+        mmm_ci_lo,
+        mmm_ci_hi,
     )
 
     format_axes(
@@ -480,7 +544,11 @@ def plot_broken(
     ci_lo,
     ci_hi,
     mmm_pred,
+    mmm_ci_lo,
+    mmm_ci_hi,
     no_cache_means,
+    no_cache_ci_lo,
+    no_cache_ci_hi,
     break_low,
     break_high,
     y_max,
@@ -513,12 +581,16 @@ def plot_broken(
         ax_top,
         ks,
         no_cache_means,
+        no_cache_ci_lo,
+        no_cache_ci_hi,
     )
 
     add_predicted(
         ax_top,
         ks,
         mmm_pred,
+        mmm_ci_lo,
+        mmm_ci_hi,
     )
 
     ax_top.set_ylim(
@@ -556,12 +628,16 @@ def plot_broken(
         ax_bot,
         ks,
         no_cache_means,
+        no_cache_ci_lo,
+        no_cache_ci_hi,
     )
 
     add_predicted(
         ax_bot,
         ks,
         mmm_pred,
+        mmm_ci_lo,
+        mmm_ci_hi,
     )
 
     ax_bot.set_ylim(
@@ -643,17 +719,19 @@ def main():
         if not no_cache:
             continue
 
-        mu = estimate_mu(
+        mu_result = estimate_mu(
             size,
             dist,
         )
 
-        if mu is None:
+        if mu_result is None:
             print(
                 f"Error: no c1 data for {size}/{dist}, skipping",
                 file=sys.stderr,
             )
             continue
+
+        mu, mu_lo, mu_hi = mu_result
 
         (
             ks,
@@ -661,6 +739,8 @@ def main():
             ci_lo,
             ci_hi,
             no_cache_means,
+            no_cache_ci_lo,
+            no_cache_ci_hi,
         ) = build_aligned_data(
             measured,
             no_cache,
@@ -677,9 +757,37 @@ def main():
             for k in ks
         ]
 
+        mmm_ci_lo = [
+            closed_throughput(
+                k,
+                mu_lo,
+            )
+            for k in ks
+        ]
+
+        mmm_ci_hi = [
+            closed_throughput(
+                k,
+                mu_hi,
+            )
+            for k in ks
+        ]
+
         # Include all three curves and CI bounds
         # when determining the y-axis range.
-        all_vals = sorted(set(means + no_cache_means + mmm_pred + ci_lo + ci_hi))
+        all_vals = sorted(
+            set(
+                means
+                + no_cache_means
+                + mmm_pred
+                + ci_lo
+                + ci_hi
+                + no_cache_ci_lo
+                + no_cache_ci_hi
+                + mmm_ci_lo
+                + mmm_ci_hi
+            )
+        )
 
         finite_meas = [v for v in means if math.isfinite(v)]
 
@@ -710,7 +818,11 @@ def main():
                 ci_lo,
                 ci_hi,
                 mmm_pred,
+                mmm_ci_lo,
+                mmm_ci_hi,
                 no_cache_means,
+                no_cache_ci_lo,
+                no_cache_ci_hi,
                 break_low,
                 break_high,
                 max_upper * 1.1,
@@ -723,7 +835,11 @@ def main():
                 ci_lo,
                 ci_hi,
                 mmm_pred,
+                mmm_ci_lo,
+                mmm_ci_hi,
                 no_cache_means,
+                no_cache_ci_lo,
+                no_cache_ci_hi,
                 all_vals,
             )
 

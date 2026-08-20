@@ -1,7 +1,3 @@
-"""
-This file is having error, it should be adjusted
-"""
-
 import glob
 import math
 import os
@@ -15,11 +11,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from plot.config import (
+    BLUE,
     CC_LEVELS,
     FIGSIZE,
     GREEN,
-    RED,
     M,
+    RED,
     data_dir_for,
     grid_style,
     legend_pos,
@@ -70,14 +67,10 @@ def closed_throughput(m, mu):
 
 
 def estimate_mu(size, dist):
-    """Estimate service rate from K=1 no-cache runs."""
+    """Estimate mu and its 95% CI from K=1 no-cache runs.
 
-    # Actual structure:
-    # csv/p2/exp3-no-cache/c1/l/uniform/
-    # csv/p2/exp3-no-cache/c1/l/zipf/
-    # csv/p2/exp3-no-cache/c1/s/uniform/
-    # csv/p2/exp3-no-cache/c1/s/zipf/
-
+    Returns (mu, mu_ci_lo, mu_ci_hi).
+    """
     data_dir = f"{NOCACHE_DIR}/c1/{size}/{dist}"
 
     csvs = sorted(
@@ -95,9 +88,26 @@ def estimate_mu(size, dist):
 
     throughputs = [float(r[-1]["txns"]) / float(r[-1]["time_s"]) for r in runs]
 
-    mean_service_time = sum(1.0 / t for t in throughputs) / len(throughputs)
+    service_times = [1.0 / t for t in throughputs]
+    mean_st = sum(service_times) / len(service_times)
 
-    return 1.0 / mean_service_time
+    mu = 1.0 / mean_st
+
+    if len(service_times) >= 2:
+        var_st = sum((s - mean_st) ** 2 for s in service_times) / (
+            len(service_times) - 1
+        )
+        std_st = math.sqrt(var_st)
+        n = len(service_times)
+        t_crit = 2.776 if n == 5 else (3.182 if n == 4 else 1.96)
+        half_st = t_crit * std_st / math.sqrt(n)
+
+        mu_lo = 1.0 / (mean_st + half_st)
+        mu_hi = 1.0 / (mean_st - half_st)
+    else:
+        mu_lo = mu_hi = mu
+
+    return mu, mu_lo, mu_hi
 
 
 # ---------------------------------------------------------------------------
@@ -107,17 +117,10 @@ def estimate_mu(size, dist):
 
 def load_measured(size, dist):
     """Load measured cached throughput with 95% CI."""
-
-    means = []
-    ci_lo = []
-    ci_hi = []
+    means, ci_lo, ci_hi = [], [], []
 
     for label in CC_LEVELS:
-        data_dir = data_dir_for(
-            label,
-            size,
-            dist,
-        )
+        data_dir = data_dir_for(label, size, dist)
 
         csvs = sorted(
             glob.glob(
@@ -145,16 +148,10 @@ def load_measured(size, dist):
 
 
 def load_no_cache(size, dist):
-    """Load measured no-cache throughput for c4..c64."""
-
-    means = []
+    """Load measured no-cache throughput with 95% CI for c4..c64."""
+    means, ci_lo, ci_hi = [], [], []
 
     for label in NOCACHE_LEVELS:
-        # Actual structure:
-        # csv/p2/exp3-no-cache/c4/l/uniform/
-        # csv/p2/exp3-no-cache/c8/l/uniform/
-        # ...
-
         data_dir = f"{NOCACHE_DIR}/{label}/{size}/{dist}"
 
         csvs = sorted(
@@ -177,15 +174,17 @@ def load_no_cache(size, dist):
 
         throughputs = [float(r[-1]["txns"]) / float(r[-1]["time_s"]) for r in runs]
 
-        m, _, _ = mean_ci(throughputs)
-        means.append(m)
+        m, lo, hi = mean_ci(throughputs)
 
-    return means
+        means.append(m)
+        ci_lo.append(lo)
+        ci_hi.append(hi)
+
+    return means, ci_lo, ci_hi
 
 
 def response_times(means, ci_lo, ci_hi, mu):
-    """Compute cached measured and M/M/m response times."""
-
+    """Compute cached measured and M/M/m response times (ms)."""
     n = len(means)
     ks = M[:n]
 
@@ -215,14 +214,28 @@ def response_times(means, ci_lo, ci_hi, mu):
     )
 
 
-def response_times_no_cache(no_cache_means):
-    """Compute measured no-cache response times."""
+def response_times_mmm_ci(ks, mu_lo, mu_hi):
+    """Compute M/M/m response time CI bounds (ms)."""
+    rt_ci_lo = [
+        ks[i] / closed_throughput(ks[i], mu_hi) * 1000.0
+        for i in range(len(ks))
+    ]
+    rt_ci_hi = [
+        ks[i] / closed_throughput(ks[i], mu_lo) * 1000.0
+        for i in range(len(ks))
+    ]
+    return rt_ci_lo, rt_ci_hi
 
+
+def response_times_no_cache(no_cache_means, no_cache_ci_lo, no_cache_ci_hi):
+    """Compute measured no-cache response times with CI (ms)."""
     ks = M[: len(no_cache_means)]
 
     rt_no_cache = [k / tp * 1000.0 for k, tp in zip(ks, no_cache_means)]
+    rt_nc_ci_lo = [k / tp_hi * 1000.0 for k, tp_hi in zip(ks, no_cache_ci_hi)]
+    rt_nc_ci_hi = [k / tp_lo * 1000.0 for k, tp_lo in zip(ks, no_cache_ci_lo)]
 
-    return ks, rt_no_cache
+    return ks, rt_no_cache, rt_nc_ci_lo, rt_nc_ci_hi
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +257,7 @@ def add_measured(ax, ks, rt_meas, rt_lo, rt_hi):
     ax.plot(
         ks,
         rt_meas,
-        color=RED,
+        color=BLUE,
         marker="o",
         label="Measured",
         **LINE_STYLE,
@@ -258,13 +271,13 @@ def add_measured(ax, ks, rt_meas, rt_lo, rt_hi):
             [rt_hi[i] - rt_meas[i] for i in range(len(ks))],
         ],
         fmt="none",
-        color=RED,
+        color=BLUE,
         capsize=4,
         capthick=1.5,
     )
 
 
-def add_predicted(ax, ks, rt_mmm):
+def add_predicted(ax, ks, rt_mmm, rt_ci_lo=None, rt_ci_hi=None):
     ax.plot(
         ks,
         rt_mmm,
@@ -274,16 +287,44 @@ def add_predicted(ax, ks, rt_mmm):
         **LINE_STYLE,
     )
 
+    if rt_ci_lo is not None and rt_ci_hi is not None:
+        ax.errorbar(
+            ks,
+            rt_mmm,
+            yerr=[
+                [rt_mmm[i] - rt_ci_lo[i] for i in range(len(ks))],
+                [rt_ci_hi[i] - rt_mmm[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=GREEN,
+            capsize=4,
+            capthick=1.5,
+        )
 
-def add_no_cache(ax, ks, rt_no_cache):
+
+def add_no_cache(ax, ks, rt_no_cache, rt_nc_ci_lo=None, rt_nc_ci_hi=None):
     ax.plot(
         ks,
         rt_no_cache,
-        color="black",
+        color=RED,
         marker="^",
         label="No cache",
         **LINE_STYLE,
     )
+
+    if rt_nc_ci_lo is not None and rt_nc_ci_hi is not None:
+        ax.errorbar(
+            ks,
+            rt_no_cache,
+            yerr=[
+                [rt_no_cache[i] - rt_nc_ci_lo[i] for i in range(len(ks))],
+                [rt_nc_ci_hi[i] - rt_no_cache[i] for i in range(len(ks))],
+            ],
+            fmt="none",
+            color=RED,
+            capsize=4,
+            capthick=1.5,
+        )
 
 
 def add_break_marks(ax_top, ax_bot):
@@ -324,7 +365,6 @@ def add_break_marks(ax_top, ax_bot):
 
 def find_break(all_vals):
     """Find the largest ratio gap in sorted values."""
-
     best_ratio = 0
     gap_idx = 0
 
@@ -372,7 +412,11 @@ def plot_single(
     rt_lo,
     rt_hi,
     rt_mmm,
+    rt_mmm_ci_lo,
+    rt_mmm_ci_hi,
     rt_no_cache,
+    rt_nc_ci_lo,
+    rt_nc_ci_hi,
     valid_vals,
 ):
     fig, ax = plt.subplots(figsize=FIGSIZE)
@@ -389,12 +433,16 @@ def plot_single(
         ax,
         ks,
         rt_mmm,
+        rt_mmm_ci_lo,
+        rt_mmm_ci_hi,
     )
 
     add_no_cache(
         ax,
         ks,
         rt_no_cache,
+        rt_nc_ci_lo,
+        rt_nc_ci_hi,
     )
 
     format_axes(
@@ -416,7 +464,11 @@ def plot_broken(
     rt_lo,
     rt_hi,
     rt_mmm,
+    rt_mmm_ci_lo,
+    rt_mmm_ci_hi,
     rt_no_cache,
+    rt_nc_ci_lo,
+    rt_nc_ci_hi,
     break_low,
     break_high,
     y_max,
@@ -452,12 +504,16 @@ def plot_broken(
         ax_bot,
         ks,
         rt_mmm,
+        rt_mmm_ci_lo,
+        rt_mmm_ci_hi,
     )
 
     add_no_cache(
         ax_bot,
         ks,
         rt_no_cache,
+        rt_nc_ci_lo,
+        rt_nc_ci_hi,
     )
 
     ax_bot.set_ylim(
@@ -500,12 +556,16 @@ def plot_broken(
         ax_top,
         ks,
         rt_mmm,
+        rt_mmm_ci_lo,
+        rt_mmm_ci_hi,
     )
 
     add_no_cache(
         ax_top,
         ks,
         rt_no_cache,
+        rt_nc_ci_lo,
+        rt_nc_ci_hi,
     )
 
     ax_top.set_ylim(
@@ -526,7 +586,6 @@ def plot_broken(
     ax_top.grid(True, **grid_style)
     ax_top.spines["bottom"].set_visible(False)
     ax_top.tick_params(bottom=False)
-
     ax_top.legend(**legend_pos)
 
     # ---------------------------------------------------------------
@@ -583,7 +642,7 @@ def main():
         # No-cache measurements
         # ---------------------------------------------------------------
 
-        no_cache_means = load_no_cache(
+        no_cache_means, no_cache_ci_lo, no_cache_ci_hi = load_no_cache(
             size,
             dist,
         )
@@ -592,8 +651,7 @@ def main():
             print(
                 f"Warning: different number of points "
                 f"for {size}/{dist}: "
-                f"cached={len(means)}, "
-                f"no-cache={len(no_cache_means)}",
+                f"cached={len(means)}, no-cache={len(no_cache_means)}",
                 file=sys.stderr,
             )
             continue
@@ -602,17 +660,19 @@ def main():
         # Estimate mu from K=1 no-cache
         # ---------------------------------------------------------------
 
-        mu = estimate_mu(
+        mu_result = estimate_mu(
             size,
             dist,
         )
 
-        if mu is None:
+        if mu_result is None:
             print(
                 f"Error: no c1 data for {size}/{dist}, skipping",
                 file=sys.stderr,
             )
             continue
+
+        mu, mu_lo, mu_hi = mu_result
 
         print(f"({size}/{dist}) = {mu:.2f} req/s (from K=1 no-cache data)")
 
@@ -633,7 +693,11 @@ def main():
             mu,
         )
 
-        _, rt_no_cache = response_times_no_cache(no_cache_means)
+        rt_mmm_ci_lo, rt_mmm_ci_hi = response_times_mmm_ci(ks, mu_lo, mu_hi)
+
+        _, rt_no_cache, rt_nc_ci_lo, rt_nc_ci_hi = response_times_no_cache(
+            no_cache_means, no_cache_ci_lo, no_cache_ci_hi
+        )
 
         # ---------------------------------------------------------------
         # Determine axis range
@@ -658,9 +722,6 @@ def main():
 
         # ---------------------------------------------------------------
         # Broken-axis decision
-        #
-        # Normally response time measured and predicted should be
-        # reasonably close. Include no-cache in the range as well.
         # ---------------------------------------------------------------
 
         max_upper = max(
@@ -679,7 +740,11 @@ def main():
                 rt_lo,
                 rt_hi,
                 rt_mmm,
+                rt_mmm_ci_lo,
+                rt_mmm_ci_hi,
                 rt_no_cache,
+                rt_nc_ci_lo,
+                rt_nc_ci_hi,
                 break_low,
                 break_high,
                 max_upper * 1.1,
@@ -693,7 +758,11 @@ def main():
                 rt_lo,
                 rt_hi,
                 rt_mmm,
+                rt_mmm_ci_lo,
+                rt_mmm_ci_hi,
                 rt_no_cache,
+                rt_nc_ci_lo,
+                rt_nc_ci_hi,
                 all_vals,
             )
 
