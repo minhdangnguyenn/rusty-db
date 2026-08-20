@@ -56,36 +56,44 @@ There are **two deployment modes**, depending on which experiment phase you are 
 ## 3. Phase 2 — Loader on `toydb-node-1` (inside the VPC)
 
 ```
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │  GCP VPC toydb-vpc / subnet 10.0.0.0/24                              │
-  │                                                                      │
-  │  ┌──────────────────────────────┐                                    │
-  │  │  toydb-node-1 (10.0.0.9)     │                                    │
-  │  │                              │                                    │
-  │  │  ┌────────────────────────┐  │                                    │
-  │  │  │  Loader (benchmark)    │  │                                    │
-  │  │  │  cargo run --release   │  │                                    │
-  │  │  │  --bin workload        │  │                                    │
-  │  │  │  -H 10.0.0.9:9601,     │  │                                    │
-  │  │  │      10.0.0.10:9602,   │  │                                    │
-  │  │  │      10.0.0.7:9603,    │  │  SQL queries over INTERNAL         │
-  │  │  │      10.0.0.11:9604,   │──┼────── network (sub-ms RTT) ──┐     │
-  │  │  │      10.0.0.8:9605     │  │                              │     │
-  │  │  │  -c K read --rows SIZE │  │                              │     │
-  │  │  │  --cache --dist zipf   │  │                              │     │
-  │  │  └────────────────────────┘  │                              │     │
-  │  └──────────────────────────────┘                              │     │
-  │                                                                │     │
-  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │     │
-  │  │ node-2   │  │ node-3   │  │ node-4   │  │ node-5   │        │     │
-  │  │SQL:9602  │  │SQL:9603  │  │SQL:9604  │  │SQL:9605  │        │     │
-  │  │Raft:9702 │  │Raft:9703 │  │Raft:9704 │  │Raft:9705 │        │     │
-  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │     │
-  │       └────────────── Raft replication (internal) ─────────────┘     │
-  └──────────────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ GCP VPC toydb-vpc / subnet 10.0.0.0/24                                                       │
+  │                                                                                              │
+  │  ┌──────────────────────────────────────────────────────────┐                                │
+  │  │   toydb-node-1 (10.0.0.9)                                │                                │
+  │  │  ┌────────────────────────────────────────────────────┐  │                                │
+  │  │  │  Loader: cargo run --release --bin workload        │  │                                │
+  │  │  │  -H 10.0.0.9:9601, 10.0.0.10:9602, 10.0.0.7:9603,  │  │                                │
+  │  │  │      10.0.0.11:9604, 10.0.0.8:9605                 │  │                                │
+  │  │  │  -c K read --rows SIZE --cache --dist zipf         │  │                                │
+  │  │  ├────────────────────────────────────────────────────┤  │                                │
+  │  │  │  (1) BlockGen ──► batch of key IDs                 │  │                                │
+  │  │  │   │                                                │  │                                │
+  │  │  │   v                                                │  │                                │
+  │  │  │  (2) filter_uncached (cache check)                 │  │                                │
+  │  │  │       │                        │                   │  │  SQL queries over INTERNAL     │
+  │  │  │  ┌────┘ HIT         MISS       └──────► (3) SQL ───┼──┼── network (sub-ms RTT) ──┐     │
+  │  │  │       v                                            │  │                          │     │
+  │  │  │  (5) cache::insert ◄── rows ◄── reply from node    │  │                          │     │
+  │  │  │   │                                                │  │                          │     │
+  │  │  │   v                                                │  │                          │     │
+  │  │  │  (6) record latency (HDR) ──► CSV                  │  │                          │     │
+  │  │  │   │                                                │  │                          │     │
+  │  │  │   v                                                │  │                          │     │
+  │  │  │  loop until --duration (30s) expires               │  │                          │     │
+  │  │  └────────────────────────────────────────────────────┘  │                          │     │
+  │  └──────────────────────────────────────────────────────────┘                          │     │
+  │      (4) receiving node: follower → Raft leader → execute read                         │     │
+  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐                                │     │
+  │  │ node-2   │  │ node-3   │  │ node-4   │  │ node-5   │                                │     │
+  │  │SQL:9602  │  │SQL:9603  │  │SQL:9604  │  │SQL:9605  │                                │     │
+  │  │Raft:9702 │  │Raft:9703 │  │Raft:9704 │  │Raft:9705 │                                │     │
+  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘                                │     │
+  │       └────────────── Raft replication (internal) ─────────────────────────────────────┘     │
+  └──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**What happens:** The loader runs directly on `toydb-node-1` alongside the database process. It connects to all 5 nodes (including itself) via internal IPs. No public internet involved — everything stays inside the VPC. This is why Phase 2 throughput is 2-5× higher.
+**What happens:** The loader runs directly on `toydb-node-1` alongside the database process. Each of the K workers produces a key batch, checks the client-side cache, and only **cache misses** leave node-1 as SQL over the internal network (sub-ms RTT). Queries are round-robined across all 5 nodes (including node-1 itself); followers forward to the Raft leader. **Cache hits skip the network entirely** — no public internet involved, which is why Phase 2 throughput is 2-5× higher.
 
 ---
 
