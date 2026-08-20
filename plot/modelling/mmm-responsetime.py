@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import LogFormatterMathtext, LogLocator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -17,12 +17,18 @@ from plot.config import (
     GREEN,
     RED,
     M,
-    data_dir_for,
     grid_style,
     legend_pos,
     load_csv,
     mean_ci,
 )
+
+MEASURED_DIR = "csv/p2/exp3"
+
+
+def data_dir_for(label: str, size: str, dist: str):
+    return f"{MEASURED_DIR}/{label}/{size}/{dist}"
+
 
 FACT = [math.factorial(n) for n in range(65)]
 
@@ -321,6 +327,8 @@ def format_axes(ax, ks, title="M/M/m response time"):
     ax.set_xticks(ks)
     ax.set_xlim(left=0)
     ax.set_yscale("log")
+    ax.yaxis.set_major_locator(LogLocator(base=10))
+    ax.yaxis.set_major_formatter(LogFormatterMathtext(base=10))
     ax.set_ylabel("Response time [ms]")
     ax.legend(**legend_pos)
     ax.grid(True, which="both", **grid_style)
@@ -347,96 +355,6 @@ def plot_single(
     format_axes(ax, ks)
 
     plt.tight_layout()
-    return fig
-
-
-def plot_broken(
-    ks,
-    rt_meas,
-    rt_lo,
-    rt_hi,
-    rt_mmm,
-    rt_mmm_ci_lo,
-    rt_mmm_ci_hi,
-    rt_no_cache,
-    rt_nc_ci_lo,
-    rt_nc_ci_hi,
-    lower_max,
-    upper_min,
-    y_min,
-    y_max,
-):
-    """
-    Log-scale broken axis used when the measured response time is much
-    lower than the M/M/m prediction.
-
-    Top subplot: prediction-dominated range.
-    Bottom subplot: measured-data range.
-    """
-    fig, (ax_top, ax_bot) = plt.subplots(
-        2,
-        1,
-        sharex=True,
-        gridspec_kw={
-            "height_ratios": [1, 1],
-            "hspace": 0.08,
-        },
-        figsize=(FIGSIZE[0], FIGSIZE[1] * 1.8),
-    )
-
-    for ax in (ax_top, ax_bot):
-        ax.set_yscale("log")
-        ax.grid(True, which="both", **grid_style)
-
-    # Top: predicted/high response-time region.
-    add_measured(ax_top, ks, rt_meas, rt_lo, rt_hi)
-    add_predicted(ax_top, ks, rt_mmm, rt_mmm_ci_lo, rt_mmm_ci_hi)
-    add_no_cache(ax_top, ks, rt_no_cache, rt_nc_ci_lo, rt_nc_ci_hi)
-
-    ax_top.set_ylim(upper_min, y_max)
-    ax_top.set_title("M/M/m response time")
-    ax_top.spines["bottom"].set_visible(False)
-    ax_top.tick_params(bottom=False)
-    ax_top.legend(**legend_pos)
-
-    # Bottom: measured/lower response-time region.
-    add_measured(ax_bot, ks, rt_meas, rt_lo, rt_hi)
-    add_predicted(ax_bot, ks, rt_mmm, rt_mmm_ci_lo, rt_mmm_ci_hi)
-    add_no_cache(ax_bot, ks, rt_no_cache, rt_nc_ci_lo, rt_nc_ci_hi)
-
-    ax_bot.set_ylim(y_min, lower_max)
-    ax_bot.spines["top"].set_visible(False)
-    ax_bot.tick_params(top=False)
-    ax_bot.set_xlabel("Concurrency level (K = m)")
-    ax_bot.set_xticks(ks)
-    ax_bot.legend(**legend_pos)
-
-    # Break marks.
-    d = 0.015
-    kwargs = dict(color="k", clip_on=False)
-
-    ax_top.plot((-d, +d), (-d, +d), transform=ax_top.transAxes, **kwargs)
-    ax_top.plot((1 - d, 1 + d), (-d, +d), transform=ax_top.transAxes, **kwargs)
-
-    ax_bot.plot((-d, +d), (1 - d, 1 + d), transform=ax_bot.transAxes, **kwargs)
-    ax_bot.plot((1 - d, 1 + d), (1 - d, 1 + d), transform=ax_bot.transAxes, **kwargs)
-
-    fig.text(
-        0.04,
-        0.5,
-        "Response time [ms]",
-        va="center",
-        rotation="vertical",
-        fontsize=11,
-    )
-
-    fig.subplots_adjust(
-        left=0.12,
-        right=0.95,
-        top=0.93,
-        bottom=0.12,
-    )
-
     return fig
 
 
@@ -525,105 +443,18 @@ def main():
             no_cache_means, no_cache_ci_lo, no_cache_ci_hi
         )
 
-        # ---------------------------------------------------------------
-        # Determine axis range
-        # ---------------------------------------------------------------
-
-        finite_meas = [v for v in rt_meas if math.isfinite(v) and v > 0]
-        finite_mmm = [v for v in rt_mmm if math.isfinite(v) and v > 0]
-        finite_no_cache = [v for v in rt_no_cache if math.isfinite(v) and v > 0]
-
-        all_vals = finite_meas + finite_mmm + finite_no_cache
-
-        if not all_vals:
-            continue
-
-        measured_vals = finite_meas + finite_no_cache
-
-        if not measured_vals or not finite_mmm:
-            continue
-
-        # ---------------------------------------------------------------
-        # Broken-axis decision
-        #
-        # Create the lower subplot when the M/M/m prediction is much
-        # larger than the measured response time.  The comparison is
-        # point-wise so one extreme value does not hide the others.
-        # ---------------------------------------------------------------
-
-        ratios = [
-            rt_mmm[i] / measured
-            for i, measured in enumerate(rt_meas)
-            if (
-                i < len(rt_mmm)
-                and math.isfinite(rt_mmm[i])
-                and math.isfinite(measured)
-                and measured > 0
-                and rt_mmm[i] > 0
-            )
-        ]
-
-        ratios += [
-            rt_mmm[i] / rt_no_cache[i]
-            for i in range(min(len(rt_mmm), len(rt_no_cache)))
-            if (
-                math.isfinite(rt_mmm[i])
-                and math.isfinite(rt_no_cache[i])
-                and rt_no_cache[i] > 0
-                and rt_mmm[i] > 0
-            )
-        ]
-
-        prediction_much_higher = any(ratio >= 5.0 for ratio in ratios)
-
-        if prediction_much_higher:
-            # Put measured values in the lower range and predicted values
-            # in the upper range.  A small multiplicative gap makes the
-            # separation visually clear on the log scale.
-            lower_max = max(measured_vals) * 1.8
-            upper_min = min(finite_mmm) / 1.8
-
-            # If the ranges overlap, use the largest measured value as
-            # the split and the smallest prediction above it.
-            if upper_min <= lower_max:
-                upper_candidates = [
-                    v for v in finite_mmm if v > lower_max
-                ]
-                if upper_candidates:
-                    upper_min = min(upper_candidates) / 1.1
-
-            y_min = min(all_vals) / 1.5
-            y_max = max(all_vals) * 1.5
-
-            fig = plot_broken(
-                ks,
-                rt_meas,
-                rt_lo,
-                rt_hi,
-                rt_mmm,
-                rt_mmm_ci_lo,
-                rt_mmm_ci_hi,
-                rt_no_cache,
-                rt_nc_ci_lo,
-                rt_nc_ci_hi,
-                lower_max,
-                upper_min,
-                y_min,
-                y_max,
-            )
-        else:
-            fig = plot_single(
-                ks,
-                rt_meas,
-                rt_lo,
-                rt_hi,
-                rt_mmm,
-                rt_mmm_ci_lo,
-                rt_mmm_ci_hi,
-                rt_no_cache,
-                rt_nc_ci_lo,
-                rt_nc_ci_hi,
-            )
+        fig = plot_single(
+            ks,
+            rt_meas,
+            rt_lo,
+            rt_hi,
+            rt_mmm,
+            rt_mmm_ci_lo,
+            rt_mmm_ci_hi,
+            rt_no_cache,
+            rt_nc_ci_lo,
+            rt_nc_ci_hi,
+        )
 
         # ---------------------------------------------------------------
         # Save
