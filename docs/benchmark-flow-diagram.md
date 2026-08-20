@@ -4,14 +4,14 @@
 
 There are **two deployment modes**, depending on which experiment phase you are running:
 
-| | Phase 1 (local loader) | Phase 2 (cloud loader) |
-|---|---|---|
-| **Loader runs on** | Your local machine | `toydb-node-1` inside GCP |
-| **Connects to nodes via** | External IPs `34.x.x.x` | Internal IPs `10.0.0.x` |
-| **Network path** | Public internet → VPC | Inside VPC only |
-| **Latency per SQL round-trip** | ~10-50 ms (internet RTT) | < 1 ms (same datacenter) |
-| **Typical throughput** | Lower | 2-5× higher |
-| **Used in** | Phase 1 experiments | Phase 2 experiments (exp3, modelling) |
+|                                | Phase 1 (local loader)   | Phase 2 (cloud loader)                |
+| ------------------------------ | ------------------------ | ------------------------------------- |
+| **Loader runs on**             | Your local machine       | `toydb-node-1` inside GCP             |
+| **Connects to nodes via**      | External IPs `34.x.x.x`  | Internal IPs `10.0.0.x`               |
+| **Network path**               | Public internet → VPC    | Inside VPC only                       |
+| **Latency per SQL round-trip** | ~10-50 ms (internet RTT) | < 1 ms (same datacenter)              |
+| **Typical throughput**         | Lower                    | 2-5× higher                           |
+| **Used in**                    | Phase 1 experiments      | Phase 2 experiments (exp3, modelling) |
 
 ---
 
@@ -57,31 +57,31 @@ There are **two deployment modes**, depending on which experiment phase you are 
 
 ```
   ┌──────────────────────────────────────────────────────────────────────┐
-  │  GCP VPC toydb-vpc / subnet 10.0.0.0/24                            │
+  │  GCP VPC toydb-vpc / subnet 10.0.0.0/24                              │
   │                                                                      │
   │  ┌──────────────────────────────┐                                    │
-  │  │  toydb-node-1 (10.0.0.9)    │                                    │
+  │  │  toydb-node-1 (10.0.0.9)     │                                    │
   │  │                              │                                    │
   │  │  ┌────────────────────────┐  │                                    │
   │  │  │  Loader (benchmark)    │  │                                    │
   │  │  │  cargo run --release   │  │                                    │
   │  │  │  --bin workload        │  │                                    │
-  │  │  │  -H 10.0.0.9:9601,    │  │                                    │
-  │  │  │      10.0.0.10:9602,  │  │                                    │ │
-  │  │  │      10.0.0.7:9603,   │  │  SQL queries over INTERNAL        │
-  │  │  │      10.0.0.11:9604,  │──┼────── network (sub-ms RTT) ──┐    │
-  │  │  │      10.0.0.8:9605    │  │                                │    │
-  │  │  │  -c 4 read --rows 1000│  │                                │    │
-  │  │  │  --cache --dist zipf  │  │                                │    │
-  │  │  └────────────────────────┘  │                                │    │
-  │  └──────────────────────────────┘                                │    │
-  │                                                                    │    │
-  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐         │    │
-  │  │ node-2   │  │ node-3   │  │ node-4   │  │ node-5   │         │    │
-  │  │SQL:9602  │  │SQL:9603  │  │SQL:9604  │  │SQL:9605  │         │    │
-  │  │Raft:9702 │  │Raft:9703 │  │Raft:9704 │  │Raft:9705 │         │    │
-  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘         │    │
-  │       └────────────── Raft replication (internal) ───────────────┘    │
+  │  │  │  -H 10.0.0.9:9601,     │  │                                    │
+  │  │  │      10.0.0.10:9602,   │  │                                    │
+  │  │  │      10.0.0.7:9603,    │  │  SQL queries over INTERNAL         │
+  │  │  │      10.0.0.11:9604,   │──┼────── network (sub-ms RTT) ──┐     │
+  │  │  │      10.0.0.8:9605     │  │                              │     │
+  │  │  │  -c 4 read --rows 1000 │  │                              │     │
+  │  │  │  --cache --dist zipf   │  │                              │     │
+  │  │  └────────────────────────┘  │                              │     │
+  │  └──────────────────────────────┘                              │     │
+  │                                                                │     │
+  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │     │
+  │  │ node-2   │  │ node-3   │  │ node-4   │  │ node-5   │        │     │
+  │  │SQL:9602  │  │SQL:9603  │  │SQL:9604  │  │SQL:9605  │        │     │
+  │  │Raft:9702 │  │Raft:9703 │  │Raft:9704 │  │Raft:9705 │        │     │
+  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │     │
+  │       └────────────── Raft replication (internal) ─────────────┘     │
   └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -113,7 +113,7 @@ This is the lifecycle of **one work item** inside the loader, identical for both
         │     sent over TCP to one of the 5 SQL ports (round-robin)
         │
         │     ┌──────────────────────────────────────────────┐
-        │     │  PHASE 1: goes over public internet           │
+        │     │  PHASE 1: goes over public internet          │
         │     │  PHASE 2: stays inside VPC (< 1 ms)          │
         │     └──────────────────────────────────────────────┘
         │
@@ -147,14 +147,14 @@ This is the lifecycle of **one work item** inside the loader, identical for both
   used_keys  = []
 
   ┌──────────────┐     block_size IDs     ┌──────────────┐
-  │  FRESH block  │ ───────────────────▶  │ REUSED block  │
-  │               │                       │               │
-  │ Take IDs from │  every block_size     │ Sample from   │
-  │ fresh_keys    │  (default 100),       │ used_keys     │
+  │  FRESH block  │ ───────────────────▶  │ REUSED block │
+  │               │                       │              │
+  │ Take IDs from │  every block_size     │ Sample from  │
+  │ fresh_keys    │  (default 100),       │ used_keys    │
   │ (never used)  │  flip state           │ (already seen)│
-  │               │                       │               │
-  │ → cache MISS  │                       │ → cache HIT   │
-  │ → fills cache │                       │ → fast path   │
+  │               │                       │              │
+  │ → cache MISS  │                       │ → cache HIT  │
+  │ → fills cache │                       │ → fast path  │
   └──────────────┘                        └──────────────┘
         ▲                                        │
         └────────────────────────────────────────┘
