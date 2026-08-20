@@ -1,7 +1,7 @@
 import argparse
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
@@ -16,6 +16,7 @@ from plot.config import (
     legend_pos,
     load_csv,
 )
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -64,13 +65,23 @@ def main():
     _, ax = plt.subplots(figsize=FIGSIZE)
 
     ax.plot(
-        t1, v1, color=args.color1, linewidth=2, marker="o", label=f"{args.label1} mean"
+        t1,
+        v1,
+        color=args.color1,
+        linewidth=2,
+        marker="o",
+        label=f"{args.label1} Dataset",
     )
     ax.fill_between(
         t1, lo1, hi1, color=args.color1, alpha=0.2, label=f"{args.label1} 95% CI"
     )
     ax.plot(
-        t2, v2, color=args.color2, linewidth=2, marker="s", label=f"{args.label2} mean"
+        t2,
+        v2,
+        color=args.color2,
+        linewidth=2,
+        marker="s",
+        label=f"{args.label2} Dataset",
     )
     ax.fill_between(
         t2, lo2, hi2, color=args.color2, alpha=0.2, label=f"{args.label2} 95% CI"
@@ -78,7 +89,7 @@ def main():
 
     ax.set_xticks(list(range(0, 31)))
     ax.set_xlim([0, 31])  # pyright: ignore[reportArgumentType]
-    ax.set_ylim([0, 100])  # pyright: ignore[reportArgumentType]
+    ax.set_ylim([0, 105])  # pyright: ignore[reportArgumentType]
     ax.ticklabel_format(axis="y", style="plain", useOffset=False)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Miss ratio [%]" if args.metric == "miss" else "Hit ratio [%]")
@@ -88,6 +99,7 @@ def main():
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
     plt.tight_layout()
+    plt.subplots_adjust(top=0.80)
 
     output = args.output or f"charts/{args.label1}-{args.label2}-{args.metric}.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
