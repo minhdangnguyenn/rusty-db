@@ -12,11 +12,12 @@ from matplotlib.ticker import (  # pyright: ignore[reportMissingImports]
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from plot.config import (
-    CC_LEVELS,
+    BLUE,
+    # CC_LEVELS,
     FIGSIZE,
     GREEN,
     RED,
-    M,
+    # M,
     # data_dir_for,
     grid_style,
     legend_pos,
@@ -42,6 +43,7 @@ LINE_STYLE = {
 # M/M/m model helpers
 # ---------------------------------------------------------------------------
 
+
 def data_dir_for(label: str, size: str, dist: str):
     return f"csv/p2/exp3/{label}/{size}/{dist}"
 
@@ -51,20 +53,12 @@ def response_time_mmm(m, lam, mu):
     mp = m * p
 
     p0 = 1.0 / (
-        1
-        + sum(mp**n / FACT[n] for n in range(1, m))
-        + mp**m / (FACT[m] * (1 - p))
+        1 + sum(mp**n / FACT[n] for n in range(1, m)) + mp**m / (FACT[m] * (1 - p))
     )
 
-    q = (
-        mp**m
-        / (FACT[m] * (1 - p))
-        * p0
-    )
+    q = mp**m / (FACT[m] * (1 - p)) * p0
 
-    return (1.0 / mu) * (
-        1.0 + q / (m * (1 - p))
-    )
+    return (1.0 / mu) * (1.0 + q / (m * (1 - p)))
 
 
 def closed_throughput(m, mu):
@@ -98,11 +92,7 @@ def load_runs(data_dir):
         )
     )
 
-    csvs = [
-        f
-        for f in csvs
-        if "summary" not in f and "avg" not in f
-    ]
+    csvs = [f for f in csvs if "summary" not in f and "avg" not in f]
 
     runs = []
 
@@ -122,12 +112,7 @@ def load_runs(data_dir):
 
 
 def run_throughputs(runs):
-    return [
-        float(run[-1]["txns"])
-        / float(run[-1]["time_s"])
-        for run in runs
-        if run
-    ]
+    return [float(run[-1]["txns"]) / float(run[-1]["time_s"]) for run in runs if run]
 
 
 # ---------------------------------------------------------------------------
@@ -148,10 +133,7 @@ def estimate_mu(size, dist):
     if not throughputs:
         return None
 
-    mean_service_time = (
-        sum(1.0 / t for t in throughputs)
-        / len(throughputs)
-    )
+    mean_service_time = sum(1.0 / t for t in throughputs) / len(throughputs)
 
     return 1.0 / mean_service_time
 
@@ -185,9 +167,7 @@ def load_measured(size, dist):
         if not throughputs:
             continue
 
-        mean, ci_lo, ci_hi = mean_ci(
-            throughputs
-        )
+        mean, ci_lo, ci_hi = mean_ci(throughputs)
 
         results[label] = {
             "mean": mean,
@@ -207,12 +187,7 @@ def load_no_cache(size, dist):
     results = {}
 
     for label in LEVELS:
-        data_dir = (
-            f"{NOCACHE_DIR}/"
-            f"{label}/"
-            f"{size}/"
-            f"{dist}"
-        )
+        data_dir = f"{NOCACHE_DIR}/{label}/{size}/{dist}"
 
         runs = load_runs(data_dir)
 
@@ -228,9 +203,7 @@ def load_no_cache(size, dist):
         if not throughputs:
             continue
 
-        mean, ci_lo, ci_hi = mean_ci(
-            throughputs
-        )
+        mean, ci_lo, ci_hi = mean_ci(throughputs)
 
         results[label] = {
             "mean": mean,
@@ -276,21 +249,13 @@ def build_aligned_data(
 
         ks.append(k)
 
-        measured_means.append(
-            measured[label]["mean"]
-        )
+        measured_means.append(measured[label]["mean"])
 
-        measured_ci_lo.append(
-            measured[label]["ci_lo"]
-        )
+        measured_ci_lo.append(measured[label]["ci_lo"])
 
-        measured_ci_hi.append(
-            measured[label]["ci_hi"]
-        )
+        measured_ci_hi.append(measured[label]["ci_hi"])
 
-        no_cache_means.append(
-            no_cache[label]["mean"]
-        )
+        no_cache_means.append(no_cache[label]["mean"])
 
     return (
         ks,
@@ -311,9 +276,7 @@ def nice_step(max_val, target_bins=10):
         return 1.0
 
     step = max_val / target_bins
-    exp = 10 ** math.floor(
-        math.log10(step)
-    )
+    exp = 10 ** math.floor(math.log10(step))
 
     return round(step / exp) * exp
 
@@ -328,7 +291,7 @@ def add_measured(
     ax.plot(
         ks,
         means,
-        color=RED,
+        color=BLUE,
         marker="o",
         label="Measured",
         **LINE_STYLE,
@@ -338,17 +301,11 @@ def add_measured(
         ks,
         means,
         yerr=[
-            [
-                means[i] - ci_lo[i]
-                for i in range(len(ks))
-            ],
-            [
-                ci_hi[i] - means[i]
-                for i in range(len(ks))
-            ],
+            [means[i] - ci_lo[i] for i in range(len(ks))],
+            [ci_hi[i] - means[i] for i in range(len(ks))],
         ],
         fmt="none",
-        color=RED,
+        color=BLUE,
         capsize=4,
         capthick=1.5,
     )
@@ -362,7 +319,7 @@ def add_no_cache(
     ax.plot(
         ks,
         means,
-        color="black",
+        color=RED,
         marker="^",
         label="No cache",
         **LINE_STYLE,
@@ -426,10 +383,7 @@ def find_break(all_vals):
 
     for i in range(1, len(all_vals)):
         if all_vals[i - 1] > 0:
-            ratio = (
-                all_vals[i]
-                / all_vals[i - 1]
-            )
+            ratio = all_vals[i] / all_vals[i - 1]
 
             if ratio > best_ratio:
                 best_ratio = ratio
@@ -448,24 +402,14 @@ def format_axes(
     title="M/M/m throughput",
 ):
     ax.set_title(title)
-    ax.set_xlabel(
-        "Concurrency level (K = m)"
-    )
+    ax.set_xlabel("Concurrency level (K = m)")
     ax.set_xticks(ks)
     ax.set_xlim(left=0)
     ax.set_ylim(bottom=0)
 
-    ax.yaxis.set_major_locator(
-        MultipleLocator(
-            nice_step(max(valid_vals))
-        )
-    )
+    ax.yaxis.set_major_locator(MultipleLocator(nice_step(max(valid_vals))))
 
-    ax.yaxis.set_major_formatter(
-        FuncFormatter(
-            lambda x, _: f"{x:,.0f}"
-        )
-    )
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
 
     ax.legend(**legend_pos)
     ax.grid(True, **grid_style)
@@ -518,9 +462,7 @@ def plot_single(
         valid_vals,
     )
 
-    ax.set_ylabel(
-        "Throughput [txns/s]"
-    )
+    ax.set_ylabel("Throughput [txns/s]")
 
     plt.tight_layout()
 
@@ -584,40 +526,22 @@ def plot_broken(
         y_max,
     )
 
-    ax_top.yaxis.set_major_locator(
-        MultipleLocator(
-            nice_step(
-                y_max - break_high
-            )
-        )
-    )
+    ax_top.yaxis.set_major_locator(MultipleLocator(nice_step(y_max - break_high)))
 
-    ax_top.yaxis.set_major_formatter(
-        FuncFormatter(
-            lambda x, _: f"{x:,.0f}"
-        )
-    )
+    ax_top.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
 
-    ax_top.set_title(
-        "M/M/m throughput"
-    )
+    ax_top.set_title("M/M/m throughput")
 
     ax_top.grid(
         True,
         **grid_style,
     )
 
-    ax_top.spines[
-        "bottom"
-    ].set_visible(False)
+    ax_top.spines["bottom"].set_visible(False)
 
-    ax_top.tick_params(
-        bottom=False
-    )
+    ax_top.tick_params(bottom=False)
 
-    ax_top.legend(
-        **legend_pos
-    )
+    ax_top.legend(**legend_pos)
 
     # Bottom
     add_measured(
@@ -645,49 +569,27 @@ def plot_broken(
         break_low,
     )
 
-    valid_bot = [
-        v
-        for v in finite_vals
-        if v <= break_low
-    ]
+    valid_bot = [v for v in finite_vals if v <= break_low]
 
     if valid_bot:
-        ax_bot.yaxis.set_major_locator(
-            MultipleLocator(
-                nice_step(
-                    max(valid_bot)
-                )
-            )
-        )
+        ax_bot.yaxis.set_major_locator(MultipleLocator(nice_step(max(valid_bot))))
 
-    ax_bot.yaxis.set_major_formatter(
-        FuncFormatter(
-            lambda x, _: f"{x:,.0f}"
-        )
-    )
+    ax_bot.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
 
     ax_bot.grid(
         True,
         **grid_style,
     )
 
-    ax_bot.spines[
-        "top"
-    ].set_visible(False)
+    ax_bot.spines["top"].set_visible(False)
 
-    ax_bot.tick_params(
-        top=False
-    )
+    ax_bot.tick_params(top=False)
 
-    ax_bot.set_xlabel(
-        "Concurrency level (K = m)"
-    )
+    ax_bot.set_xlabel("Concurrency level (K = m)")
 
     ax_bot.set_xticks(ks)
 
-    ax_bot.legend(
-        **legend_pos
-    )
+    ax_bot.legend(**legend_pos)
 
     add_break_marks(
         ax_top,
@@ -748,8 +650,7 @@ def main():
 
         if mu is None:
             print(
-                f"Error: no c1 data for "
-                f"{size}/{dist}, skipping",
+                f"Error: no c1 data for {size}/{dist}, skipping",
                 file=sys.stderr,
             )
             continue
@@ -778,51 +679,19 @@ def main():
 
         # Include all three curves and CI bounds
         # when determining the y-axis range.
-        all_vals = sorted(
-            set(
-                means
-                + no_cache_means
-                + mmm_pred
-                + ci_lo
-                + ci_hi
-            )
-        )
+        all_vals = sorted(set(means + no_cache_means + mmm_pred + ci_lo + ci_hi))
 
-        finite_meas = [
-            v
-            for v in means
-            if math.isfinite(v)
-        ]
+        finite_meas = [v for v in means if math.isfinite(v)]
 
-        finite_no_cache = [
-            v
-            for v in no_cache_means
-            if math.isfinite(v)
-        ]
+        finite_no_cache = [v for v in no_cache_means if math.isfinite(v)]
 
-        finite_mmm = [
-            v
-            for v in mmm_pred
-            if math.isfinite(v)
-        ]
+        finite_mmm = [v for v in mmm_pred if math.isfinite(v)]
 
-        max_meas = (
-            max(finite_meas)
-            if finite_meas
-            else 0
-        )
+        max_meas = max(finite_meas) if finite_meas else 0
 
-        max_no_cache = (
-            max(finite_no_cache)
-            if finite_no_cache
-            else 0
-        )
+        max_no_cache = max(finite_no_cache) if finite_no_cache else 0
 
-        max_mmm = (
-            max(finite_mmm)
-            if finite_mmm
-            else 0
-        )
+        max_mmm = max(finite_mmm) if finite_mmm else 0
 
         max_upper = max(
             max_meas,
@@ -832,13 +701,8 @@ def main():
 
         # Broken axis only if measured/no-cache values are
         # much larger than the M/M/m prediction.
-        if (
-            max_mmm > 0
-            and max_upper > 5 * max_mmm
-        ):
-            break_low, break_high = find_break(
-                all_vals
-            )
+        if max_mmm > 0 and max_upper > 5 * max_mmm:
+            break_low, break_high = find_break(all_vals)
 
             fig = plot_broken(
                 ks,
@@ -850,9 +714,7 @@ def main():
                 break_low,
                 break_high,
                 max_upper * 1.1,
-                finite_meas
-                + finite_no_cache
-                + finite_mmm,
+                finite_meas + finite_no_cache + finite_mmm,
             )
         else:
             fig = plot_single(
@@ -870,11 +732,7 @@ def main():
             exist_ok=True,
         )
 
-        out_path = (
-            f"{OUT_DIR}"
-            f"mmm-throughput-"
-            f"{size}-{dist}.png"
-        )
+        out_path = f"{OUT_DIR}mmm-throughput-{size}-{dist}.png"
 
         plt.savefig(
             out_path,
@@ -882,9 +740,7 @@ def main():
             bbox_inches="tight",
         )
 
-        print(
-            f"Saved to {out_path}"
-        )
+        print(f"Saved to {out_path}")
 
         plt.close(fig)
 
