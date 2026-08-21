@@ -35,6 +35,12 @@ LINE_STYLE = {
     "markersize": 8,
 }
 
+CONFIGS = [
+        ("l", "uniform"),
+        ("l", "zipf"),
+        ("s", "uniform"),
+        ("s", "zipf"),
+    ]
 
 # ---------------------------------------------------------------------------
 # M/M/m model helpers
@@ -697,12 +703,7 @@ def plot_broken(
 
 
 def main():
-    for size, dist in [
-        ("l", "uniform"),
-        ("l", "zipf"),
-        ("s", "uniform"),
-        ("s", "zipf"),
-    ]:
+    for size, dist in CONFIGS:
         measured = load_measured(
             size,
             dist,
