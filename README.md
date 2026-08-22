@@ -54,6 +54,68 @@ Time   Progress     Txns      Rate       p50       p90       p99       max
 Verifying dataset... done (0.002s)
 ```
 
+### BlockGen flow — how work items are generated
+
+The `read` workload generates work items with `BlockGen` (`src/bin/workload.rs`), an
+iterator that alternates between **fresh** key blocks (never used before, always a cache
+miss) and **reused** key blocks (sampled from already-seen keys) in fixed-size blocks
+(`--block-size`, default `100`; each batch is `--batch`, default `1` key):
+
+```
+BlockGen::next() — one call returns one work item (a batch of key ids)
+========================================================================
+        |
+        v
+  +-------------------------------------------------------------+
+  | (1) end of current block?  (block_remaining == 0)           |
+  |       yes -> flip is_fresh_block (fresh <-> reused)         |
+  |              block_remaining = block_size                   |
+  |       no  -> keep the current block type                    |
+  +-------------------------------------------------------------+
+        |
+        v
+  +-------------------------------------------------------------+
+  | (2) n = min(batch, block_remaining); block_remaining -= n  |
+  +-------------------------------------------------------------+
+              |                               |
+              |  fresh block                  |  reused block
+              v                               v
+  +------------------------+      +---------------------------+
+  | (3a) FRESH block       |      | (3b) REUSED block         |
+  | for each of n ids:     |      | for each of n ids:        |
+  |   if fresh_keys left:  |      |   sample uniformly or     |
+  |     take fresh_keys[   |      |   zipf(skew) from         |
+  |     fresh_idx],        |      |   used_keys               |
+  |     fresh_idx += 1,    |      |                           |
+  |     push id to         |      |                           |
+  |     used_keys          |      |                           |
+  |   else: sample from    |      |                           |
+  |     used_keys          |      |                           |
+  +------------------------+      +---------------------------+
+              |                               |
+              +---------------+---------------+
+                              |
+                              v
+                return work item (HashSet of n ids)
+                              |
+                              v
+  +-------------------------------------------------------------+
+  | runner loop: stop flag set? (30s deadline elapsed)          |
+  |       yes -> break -> benchmark ends                        |
+  |       no  -> send batch to workers, call next() again       |
+  +-------------------------------------------------------------+
+```
+
+Notes:
+
+- `fresh_keys` is built once in `generate()` as `shuffle(1..=rows)`, so fresh ids are
+  handed out in random order and never repeated until the list is exhausted.
+- When `fresh_keys` runs out (every row id has been used once), fresh blocks fall back to
+  sampling from `used_keys`, exactly like reused blocks.
+- The benchmark is **time-bounded**: the generator thread loops over `BlockGen` until a
+  `stop` flag is set by the 30s deadline; it is not bounded by a request count.
+- A work item is a `HashSet<u64>`, so a batch never contains duplicate ids.
+
 ## Terraform Workflow
 
 A 5-node toyDB cluster can be deployed on GCP via Terraform.
