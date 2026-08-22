@@ -73,6 +73,46 @@ def closed_single_server(k: int, di: float, z: float) -> float:
     return k / (z + di * (1.0 + q))
 
 
+def find_break(all_vals: list[float]) -> tuple[float, float]:
+    """Pick the largest gap in the sorted values as the y-axis break point."""
+    best_ratio = 0
+    gap_idx = 0
+
+    for i in range(1, len(all_vals)):
+        if all_vals[i - 1] > 0:
+            ratio = all_vals[i] / all_vals[i - 1]
+            if ratio > best_ratio:
+                best_ratio = ratio
+                gap_idx = i
+
+    return all_vals[gap_idx - 1] * 1.15, all_vals[gap_idx] * 0.85
+
+
+def add_break_marks(ax_top, ax_bot) -> None:
+    d = 0.015
+    kw = {"color": "k", "clip_on": False}
+
+    ax_bot.plot((-d, +d), (1 - d, 1 + d), transform=ax_bot.transAxes, **kw)
+    ax_bot.plot((-d, +d), (1 + d, 1 - d), transform=ax_bot.transAxes, **kw)
+
+    ax_top.plot((-d, +d), (-d, +d), transform=ax_top.transAxes, **kw)
+    ax_top.plot((-d, +d), (-d - d, -d + d), transform=ax_top.transAxes, **kw)
+
+
+def draw_series(ax, ks, meas_nc, meas_ca, model) -> None:
+    ax.plot(ks, meas_nc, "o-", color=RED, linewidth=2, markersize=8,
+            label="measured (no-cache)")
+    ax.plot(ks, meas_ca, "s-", color=BLUE, linewidth=2, markersize=6,
+            label="measured (with cache)")
+    ax.plot(ks, model, "^--", color=GREEN, linewidth=2, markersize=8,
+            label="M/M/1 predicted")
+
+
+def format_axis(ax, formatter) -> None:
+    ax.yaxis.set_major_formatter(formatter)
+    ax.grid(True, **grid_style)
+
+
 def estimate_params(size: str, dist: str) -> tuple[float, float, float] | None:
     """Return (di, z, mu_local) from no-cache runs, or None if data missing."""
     mu64 = mean_throughput(os.path.join(
@@ -108,27 +148,61 @@ def main() -> None:
         meas_ca = measured_series(CACHE_DIR, size, dist, True)
         model = [closed_single_server(k, di, z) for k in K_VALUES]
 
-        fig, ax = plt.subplots(figsize=FIGSIZE)
-        ax.plot(K_VALUES, meas_nc, "o-", color=RED, linewidth=2, markersize=8,
-                label="measured (no-cache)")
-        ax.plot(K_VALUES, meas_ca, "s-", color=BLUE, linewidth=2, markersize=6,
-                label="measured (with cache)")
-        ax.plot(K_VALUES, model, "^--", color=GREEN, linewidth=2, markersize=8,
-                label="M/M/1 predicted")
+        title = f"M/M/1 (single leader) vs {size}/{dist}"
+        formatter = FuncFormatter(lambda x, _: f"{x:,.0f}")
 
-        ax.set_title(
-            f"M/M/1 (single leader) vs {size}/{dist}",
-            fontsize=11, fontweight="bold")
-        ax.set_xlabel("Concurrency level (K)")
-        ax.set_ylabel("Throughput [txns/s]")
-        ax.set_xticks(K_VALUES)
-        ax.set_xlim(left=0)
-        ax.set_ylim(bottom=0)
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.0f}"))
-        ax.grid(True, **grid_style)
-        ax.legend(loc="upper left", fontsize=9)
+        all_vals = sorted(set(meas_nc + meas_ca + model))
+        max_model = max(model)
+        max_upper = max(max(meas_nc), max(meas_ca), max_model)
 
-        plt.tight_layout()
+        # With-cache throughput can be orders of magnitude above the model
+        # (e.g. s/* configs, ~200x), which crushes the no-cache and predicted
+        # lines against the bottom on a single linear axis. Use a broken
+        # y-axis (like the M/M/m charts) in that case.
+        if max_model > 0 and max_upper > 20 * max_model:
+            break_low, break_high = find_break(all_vals)
+            fig, (ax_top, ax_bot) = plt.subplots(
+                2, 1, sharex=True,
+                gridspec_kw={"height_ratios": [1, 1], "hspace": 0.1},
+                figsize=(FIGSIZE[0] * 1.4, FIGSIZE[1] * 2))
+
+            draw_series(ax_top, K_VALUES, meas_nc, meas_ca, model)
+            ax_top.set_ylim(break_high, max_upper * 1.1)
+            ax_top.set_title(title, fontsize=11, fontweight="bold")
+            format_axis(ax_top, formatter)
+            ax_top.spines["bottom"].set_visible(False)
+            ax_top.tick_params(bottom=False)
+            ax_top.legend(loc="upper left", fontsize=9)
+
+            draw_series(ax_bot, K_VALUES, meas_nc, meas_ca, model)
+            ax_bot.set_ylim(0, break_low)
+            format_axis(ax_bot, formatter)
+            ax_bot.spines["top"].set_visible(False)
+            ax_bot.tick_params(top=False)
+            ax_bot.set_xlabel("Concurrency level (K)")
+            ax_bot.set_xticks(K_VALUES)
+            ax_bot.set_xlim(left=0)
+            ax_bot.legend(loc="upper left", fontsize=9)
+
+            add_break_marks(ax_top, ax_bot)
+            fig.subplots_adjust(left=0.12, right=0.85, top=0.93, bottom=0.15)
+            fig.text(0.05, 0.5, "Throughput [txns/s]",
+                     va="center", rotation="vertical", fontsize=11)
+        else:
+            fig, ax = plt.subplots(figsize=FIGSIZE)
+            draw_series(ax, K_VALUES, meas_nc, meas_ca, model)
+
+            ax.set_title(title, fontsize=11, fontweight="bold")
+            ax.set_xlabel("Concurrency level (K)")
+            ax.set_ylabel("Throughput [txns/s]")
+            ax.set_xticks(K_VALUES)
+            ax.set_xlim(left=0)
+            ax.set_ylim(bottom=0)
+            format_axis(ax, formatter)
+            ax.legend(loc="upper left", fontsize=9)
+
+            plt.tight_layout()
+
         out = os.path.join(OUT_DIR, f"mm1-throughput-{size}-{dist}.png")
         plt.savefig(out, dpi=200, bbox_inches="tight")
         print(f"Saved to {out}  (di={di * 1000:.3f}ms, Z={z * 1000:.2f}ms, mu={mu:,.0f}/s)")
