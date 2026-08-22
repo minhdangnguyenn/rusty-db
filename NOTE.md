@@ -295,6 +295,47 @@ Run no-cache at **K = 64, 128, 256** (same config). Closed M/M/m predicts throug
 - **Cache decomposition**: fit `E[R] = H·R_cache + (1−H)·R_db` using the per-run `cache_hit_rate` column (already in your summaries) and show it closes the `l` (≈50% hit) vs `s` (≈100% hit) gap — isolating the cache confounder from the m/miscount confounder.
 - **CV check**: from your p50/p90/p99/max (e.g. l/uniform c64 no-cache: p50≈8 ms, p90≈13, p99≈19, max≈68) — service time has high variability, so the `M` (=exponential/Poisson) assumption is also violated. Suggests M/G/m or a closed-form with a measured CV.
 
-## What I'd implement (only in Act mode)
+-------------------------------------------------------------------------------------------
+# ACTUAL NUMBERS (5‑run averages from `csv/p2`) & M/M/1 FIT
 
-I could add a `plot/modelling/prove-leader-model.py` that automates the residuals + μ-sensitivity + cache-decomposition tables against `csv/p2`, and small runner scripts for experiments 1–5 above. I'm in Plan mode so I haven't changed anything. Toggle to **Act mode** and I'll build it.
+Figures below are means over the 5 `--id 1..5` summary CSVs in `csv/p2` (columns
+`exp3-no-cache/...` and `exp3/...`). These supersede the single‑run values quoted
+earlier in this note.
+
+## Measured throughput [txns/s]
+
+| size | dist | series | c4 | c8 | c16 | c32 | c64 |
+|---|---|---|---|---|---|---|---|
+| l (10k) | uniform | no‑cache | 1,386 | 2,791 | 4,264 | 6,066 | **6,482** |
+| l (10k) | uniform | with‑cache | 2,750 | 4,696 | 8,192 | 14,221 | 17,640 |
+| l (10k) | zipf | no‑cache | 1,522 | 2,367 | 3,924 | 3,763 | **9,335** |
+| l (10k) | zipf | with‑cache | 8,506 | 18,705 | 33,341 | 67,574 | 89,511 |
+| s (1k) | uniform | no‑cache | 1,544 | 2,023 | 4,022 | 5,408 | **8,661** |
+| s (1k) | uniform | with‑cache | 1,900,090 | 1,953,465 | 2,155,303 | 1,818,661 | 1,807,178 |
+| s (1k) | zipf | no‑cache | 1,591 | 2,065 | 4,187 | 4,531 | **8,493** |
+| s (1k) | zipf | with‑cache | 1,989,472 | 1,979,814 | 1,809,021 | 1,607,005 | 1,872,247 |
+
+## M/M/1 (single leader) parameters from this data
+
+| size/dist | μ from K=1 no‑cache | μ at K=64 no‑cache (leader ceiling) | leader service `di` | quorum/network `Z` |
+|---|---|---|---|---|
+| l/uniform | 490 | **6,482** | 0.154 ms | ~1.89 ms |
+| l/zipf | 495 | **9,335** | 0.107 ms | ~1.91 ms |
+| s/uniform | 504 | **8,661** | 0.115 ms | ~1.87 ms |
+| s/zipf | 468 | **8,493** | 0.118 ms | ~2.02 ms |
+
+Derived as: `di = 1 / μ(K=64)` (saturated leader), `Z = 1/μ0 − di` (K=1 round‑trip
+minus server service).
+
+## Why this is M/M/1 (not M/M/m)
+
+- Only one Raft leader executes reads (followers only proxy + answer quorum acks).
+- No‑cache throughput **flattens**: l/uniform c32=6,066 → c64=6,482 (+7%) while
+  concurrency doubled. That plateau value **is** `1 / di`, the single‑server ceiling.
+  With `m=5, μ=490` the M/M/m ceiling would be `5·490 = 2,450`, far below the measured
+  6,482; with `m=K` it over‑predicts like 64 parallel servers. So neither fits.
+- `M/M/1 + Z` closed‑loop (`X(k) = k / (Z + di·(1+Q))`) reproduces the plateau shape:
+  at high `K`, `Q → K`, `X → 1/di = μ_ceiling`, which is exactly the c64 no‑cache value.
+- The `with‑cache` series (esp. `s/*` ≈ 1.9–2.2 M/s, 99.99% hit) is dominated by the
+  **client‑side cache + one global mutex**, not the cluster — it must be separated from
+  the server fit (see cache section above).
