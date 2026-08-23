@@ -16,10 +16,10 @@ from plot.config import (
 )
 
 CONFIGS = [
-    ("Cache, Uniform", NAVY, "o", "csv/p2/exp1/cache/s/uniform"),
-    ("Cache, Zipfian", GREEN, "^", "csv/p2/exp1/cache/s/zipf"),
-    ("No cache, Uniform", LIGHT_RED, "s", "csv/p2/exp1/no-cache/s/uniform"),
-    ("No cache, Zipfian", ORANGE, "D", "csv/p2/exp1/no-cache/s/zipf"),
+    ("Cache, Uniform", NAVY, "o", "csv/cloud/exp1/cache/s/uniform"),
+    ("Cache, Zipfian", GREEN, "^", "csv/cloud/exp1/cache/s/zipf"),
+    ("No cache, Uniform", LIGHT_RED, "s", "csv/cloud/exp1/no-cache/s/uniform"),
+    ("No cache, Zipfian", ORANGE, "D", "csv/cloud/exp1/no-cache/s/zipf"),
 ]
 
 
@@ -48,7 +48,7 @@ def main() -> None:
     ax.set_xlim(left=0, right=end_tick + 1)
 
     if all_vals:
-        # Cache (~1.9M) vs no-cache (~8.5k) differ by ~200x, so a linear
+        # Cache (~1.3M) vs no-cache (~1.8k) differ by ~700x, so a linear
         # axis would crush the no-cache lines; use a log scale instead.
         ax.set_yscale("log")
         pos_vals = [v for v in all_vals if v > 0]
@@ -64,7 +64,7 @@ def main() -> None:
     ax.grid(True, **grid_style)
     plt.tight_layout()
 
-    out_path = "charts/p2/exp1/throughput-all-small.png"
+    out_path = "charts/cloud/exp1/throughput-all-small.png"
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     plt.savefig(out_path)
     print(f"Saved to {out_path}")
