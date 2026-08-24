@@ -152,7 +152,7 @@ def main():
     add_break_marks(ax_top, ax_bot)
     fig.text(0.04, 0.5, "Throughput [txns/s]", va="center", rotation="vertical", fontsize=11)
 
-    fig.subplots_adjust(left=0.10, right=0.97, top=0.93, bottom=0.08)
+    fig.subplots_adjust(left=0.13, right=0.97, top=0.93, bottom=0.08)
 
     output = "charts/cloud/exp3/throughput-vs-clients.png"
     os.makedirs(os.path.dirname(output), exist_ok=True)
