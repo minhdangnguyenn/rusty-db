@@ -81,7 +81,7 @@ def main():
     x = np.arange(len(categories))
 
     # Move the two algorithms slightly apart
-    offset = 0.10
+    offset = 0.12
     x1 = x - offset
     x2 = x + offset
 
@@ -122,20 +122,21 @@ def main():
             x_pos,
             value,
             marker=rect_marker,
-            ms=19,
+            ms=24,
             color="white",
             markeredgecolor=NAVY,
             markeredgewidth=1.5,
             zorder=3,
         )
 
+        label_txt = f"{value:.3f}" if value < 0.1 else f"{value:.1f}"
         ax.text(
             x_pos,
             value,
-            f"{value:.1f}",
+            label_txt,
             ha="center",
             va="center",
-            fontsize=8,
+            fontsize=9,
             color="black",
             zorder=4,
         )
@@ -162,20 +163,21 @@ def main():
             x_pos,
             value,
             marker=rect_marker,
-            ms=13,
+            ms=24,
             color="white",
             markeredgecolor=LIGHT_RED,
             markeredgewidth=1.5,
             zorder=3,
         )
 
+        label_txt = f"{value:.3f}" if value < 0.1 else f"{value:.1f}"
         ax.text(
             x_pos,
             value,
-            f"{value:.1f}",
+            label_txt,
             ha="center",
             va="center",
-            fontsize=8,
+            fontsize=9,
             color="black",
             zorder=4,
         )
@@ -219,7 +221,7 @@ def main():
         [],
         [],
         marker=rect_marker,
-        ms=13,
+        ms=18,
         color="white",
         markeredgecolor=NAVY,
         markeredgewidth=1.5,
@@ -230,7 +232,7 @@ def main():
         [],
         [],
         marker=rect_marker,
-        ms=13,
+        ms=18,
         color="white",
         markeredgecolor=LIGHT_RED,
         markeredgewidth=1.5,
